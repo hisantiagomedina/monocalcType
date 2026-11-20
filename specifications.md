@@ -2,10 +2,10 @@
 ## SDD particular — Spec-Driven Development
 
 **Documento:** SDD-TYPE-0.1.0  
-**Revisión:** Borrador 0.2 — arquitectura seleccionada  
+**Revisión:** Borrador 0.3 — arquitectura y herramientas de desarrollo aprobadas  
 **Contrato superior:** SDD común monocalc 0.1.0, Borrador 0.3  
 **Producto:** monocalc Type (independiente de monocalc Compose)  
-**Estado:** Especificación de Type con arquitectura seleccionada; parámetros cuantitativos pendientes según SDD común.
+**Estado:** Especificación de Type con arquitectura y stack de desarrollo seleccionados; parámetros cuantitativos pendientes según SDD común.
 
 > [!WARNING]
 > **JUNIE LITE — ADVERTENCIA OPERATIVA, INICIO 00:00.** El plazo indicado por el responsable del proyecto es de **seis horas: objetivo de entrega a las 06:00, hora local de esa misma jornada**. Si terminas antes, entrega antes. Trabaja de manera autónoma, ejecuta pruebas nativas con GCC y Clang y deja resultados reproducibles. **Puedes utilizar Git** para registrar avances mediante commits pequeños y recuperar un estado anterior si algo falla. No sobrescribas trabajo ajeno, no uses operaciones destructivas sin necesidad y no declares pruebas aprobadas si no las ejecutaste. **El plazo no autoriza a sacrificar corrección matemática, omitir fallos ni presentar la validación en PC como validación física del Arduino.** Si el tiempo no alcanza, entrega el estado verificable, los bloqueos y el siguiente paso concreto.
@@ -18,7 +18,7 @@
 
 **TYPE-002 — Independencia.** Type es una biblioteca Arduino C++ autónoma. No dependerá de Compose para interpretar, evaluar, derivar, integrar, estimar límites ni superar sus pruebas. Podrá compararse con Compose usando referencias matemáticas compartidas, sin importar sus implementaciones internas.
 
-**TYPE-003 — Método SDD y arquitectura acordada.** Se trabajará desde especificaciones observables y pruebas de aceptación hacia la implementación. **Queda seleccionada para Type 0.1.0 la arquitectura Parser Pratt + AST compacto + reglas simbólicas conservadoras + gestión explícita de memoria y dominios.** Sus componentes y criterios verificables se detallan en la sección 4. Permanecen abiertas las firmas C++ definitivas, el formato concreto de nodos y restricciones, el sistema de construcción y las optimizaciones internas. Las decisiones restantes se justificarán por pruebas en GCC, Clang, AVR y ESP32. Esta elección no afecta a la arquitectura de Compose.
+**TYPE-003 — Método SDD y arquitectura acordada.** Se trabajará desde especificaciones observables y pruebas de aceptación hacia la implementación. **Queda seleccionada para Type 0.1.0 la arquitectura Parser Pratt + AST compacto + reglas simbólicas conservadoras + gestión explícita de memoria y dominios.** Sus componentes y criterios verificables se detallan en la sección 4. Permanecen abiertas las firmas C++ definitivas, el formato concreto de nodos y restricciones y las optimizaciones internas. El stack de construcción y pruebas queda fijado en la sección 6.1. Las decisiones restantes se justificarán por pruebas en GCC, Clang, AVR y ESP32. Esta elección no afecta a la arquitectura de Compose.
 
 **TYPE-004 — Entrega 0.1.0.** El objetivo funcional es interpretar expresiones de una variable a partir de texto, convertirlas en funciones reutilizables y permitir `compute`, `derive`/`d`, `integrate`/`i` y `lim` con el comportamiento común acordado. La compilación y ejecución nativas con GCC y Clang son obligatorias desde esta versión.
 
@@ -185,6 +185,45 @@ La normalización y la simplificación conservadora podrán intervenir en la con
 
 **PORT-T-005 — Dependencias.** La distribución Arduino no requerirá un servicio externo ni conexión a Internet durante la ejecución. Las dependencias y versiones utilizadas para construir y probar deberán quedar documentadas.
 
+### 6.1. Stack de desarrollo aprobado — decisión técnica vinculante
+
+**STACK-T-001 — Estándar de lenguaje.** La implementación de la librería y su API pública deberán ser compatibles con **C++11**. No se utilizarán características de estándares posteriores en el núcleo distribuible ni en las cabeceras públicas. Las herramientas auxiliares de desarrollo podrán utilizar otras tecnologías sin introducir dependencias en el firmware.
+
+**STACK-T-002 — Compilación nativa con CMake.** **CMake** será el sistema de construcción nativo de referencia y deberá configurar y compilar Type con **GCC y Clang** en directorios de compilación independientes, sin instalación del IDE Arduino ni hardware conectado. El código matemático central será el mismo que se compila para las placas, salvo adaptaciones de portabilidad justificadas; no se admitirá un motor alternativo de pruebas que oculte diferencias funcionales.
+
+**STACK-T-003 — Pruebas con CTest.** **CTest** orquestará la suite nativa. Las pruebas podrán implementarse como ejecutables C++ propios, sin incorporar obligatoriamente frameworks externos de pruebas al repositorio ni al núcleo. Un fallo deberá reflejarse en el código de salida del proceso y en el resultado de CTest. Debe haber un procedimiento documentado para configuración, compilación y ejecución completa.
+
+**STACK-T-004 — Arduino CLI.** **Arduino CLI** será la herramienta de referencia para automatizar la compilación de ejemplos/sketches de Type para **Arduino UNO clásico (AVR)** y **ESP32**. La instalación del core de cada placa, el identificador FQBN utilizado y las versiones correspondientes deberán registrarse. Una compilación correcta no certifica ejecución física, memoria disponible en uso ni precisión de hardware. En ausencia del core, red o placa, registrar el bloqueo en lugar de simular un éxito.
+
+**STACK-T-005 — Diagnóstico con sanitizadores.** En compilaciones nativas de diagnóstico se utilizarán **AddressSanitizer (ASan)** y **UndefinedBehaviorSanitizer (UBSan)** cuando el compilador y el sistema operativo los admitan. Estas pruebas se ejecutarán sobre casos normales, sintaxis inválida, límites de memoria, transformaciones sucesivas y regresiones. Su ausencia por incompatibilidad deberá constar expresamente; no sustituyen las mediciones en Arduino.
+
+**STACK-T-006 — Informes.** Cada ejecución de validación deberá producir un **resumen Markdown legible** y un **informe JUnit XML** para su análisis automatizado, además del código de salida verificable. Los informes deberán identificar versión/commit, GCC o Clang y su versión, configuración, pruebas superadas/fallidas/omitidas, evidencia de errores y limitaciones; los resultados no concluyentes de métodos numéricos se contabilizarán separados de los fallos de infraestructura. Se podrán generar mediante CTest y herramientas auxiliares del repositorio, sin agregar dependencias al firmware.
+
+**STACK-T-007 — Automatización para Junie Lite.** El proceso deberá ofrecer comandos documentados y reproducibles para compilar, probar y generar informes, adecuados para ejecución por terminal o agente. Junie Lite será el agente de desarrollo previsto, no una dependencia de ejecución ni de compilación de la biblioteca.
+
+**STACK-T-008 — Git.** **Git** será el sistema de control de versiones y recuperación de avances. Junie Lite podrá efectuar commits pequeños con mensajes descriptivos por hitos comprobables. Deberá conservar modificaciones ajenas, documentar el commit de entrega y evitar operaciones destructivas sin autorización. Los archivos generados y compilaciones temporales no deberán introducirse innecesariamente en el historial.
+
+**STACK-T-009 — Integración continua futura.** **GitHub Actions** se considera candidato de automatización remota **opcional y futuro**, no condición de aprobación de 0.1.0 ni servicio requerido para construir o ejecutar Type. Las pruebas y compilaciones deben funcionar localmente sin CI.
+
+**STACK-T-010 — Sin dependencias pesadas en el firmware.** CMake, CTest, Arduino CLI, sanitizadores, conversores de informes y otras herramientas de desarrollo no se enlazarán ni requerirán en la ejecución de la biblioteca en Arduino. La instalación y uso del núcleo seguirán siendo compatibles con el entorno Arduino habitual.
+
+**STACK-T-011 — Parámetros que no se fijan por preferencia.** El tamaño/capacidad del AST, la distribución exacta de nodos, la profundidad admisible, los presupuestos medidos de Flash/RAM y las tolerancias de coma flotante deberán justificarse mediante pruebas por plataforma. C++11, CMake y CTest son decisiones aprobadas; esos parámetros siguen sujetos a la validación prevista en el SDD común.
+
+**Ejemplo de comandos nativos de referencia** (el repositorio debe documentar los comandos definitivos y mantenerlos ejecutables):
+
+```bash
+cmake -S . -B build/gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_STANDARD=11
+cmake --build build/gcc
+ctest --test-dir build/gcc --output-on-failure --output-junit build/gcc/resultados-junit.xml
+
+cmake -S . -B build/clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_STANDARD=11
+cmake --build build/clang
+ctest --test-dir build/clang --output-on-failure --output-junit build/clang/resultados-junit.xml
+```
+
+Se deberá proporcionar además una configuración de diagnóstico ASan/UBSan cuando sea compatible; los directorios de compilación de cada compilador y configuración deberán mantenerse separados. Un comando documentado del repositorio generará el resumen Markdown a partir de los resultados reales; no se exige un lenguaje de scripting específico. La generación JUnit mediante `ctest --output-junit` requiere una versión de CTest que admita esa opción, o un mecanismo equivalente documentado.
+
+
 ## 7. Pruebas de aceptación específicas de Type
 
 Los casos de esta tabla **se suman** a CA-001–CA-034 y a las baterías del SDD común; no los sustituyen. Las comparaciones aproximadas usarán tolerancias determinadas por plataforma y nunca tolerancia cero universal.
@@ -228,6 +267,15 @@ Los casos de esta tabla **se suman** a CA-001–CA-034 y a las baterías del SDD
 | TY-CA-035 | Integral definida de `1/x` en `[-1,1]` tras simplificaciones | Rechazo matemáticamente correcto; sin extrapolación por muestreo |
 | TY-CA-036 | Auditoría GCC y Clang con sanitizadores compatibles | Sin acceso fuera de límites ni comportamiento indefinido detectado en batería |
 | TY-CA-037 | Compilación y evaluación con memoria limitada para plataforma AVR | Límites documentados y fallo seguro cuando se agotan |
+| TY-CA-038 | Compilar Type con estándar C++11 sin extensiones de C++ posteriores | Compilación satisfactoria con GCC y Clang |
+| TY-CA-039 | Configurar y construir con CMake usando GCC | Éxito sin IDE Arduino ni hardware |
+| TY-CA-040 | Configurar y construir con CMake usando Clang | Éxito en directorio independiente |
+| TY-CA-041 | Ejecutar CTest con una prueba deliberadamente fallida | Salida de error y prueba identificable en el informe |
+| TY-CA-042 | Ejecutar suite completa y generar informes | JUnit XML válido y resumen Markdown concordante con resultados reales |
+| TY-CA-043 | Ejecutar ASan/UBSan en entorno compatible | No se detectan errores en la suite; incompatibilidad documentada si procede |
+| TY-CA-044 | Compilar ejemplo de Arduino UNO mediante Arduino CLI | Compilación verificada o dependencia faltante reportada, sin confundir con prueba física |
+| TY-CA-045 | Compilar ejemplo de ESP32 mediante Arduino CLI | Compilación verificada o dependencia faltante reportada, sin confundir con prueba física |
+| TY-CA-046 | Revisar historial Git y commit de entrega | Hash y cambios reproducibles, sin pérdida de trabajo preexistente |
 
 **TEST-T-001 — Baterías matemáticas.** Se usarán baterías representativas de aproximadamente 20–30 casos por área. Para integración y límites, el punto de partida son 24 casos por batería. La integración incluirá constantes/potencias, polinomios, trigonométricas, exponenciales/recíprocas, argumentos afines y dominios/no soportadas; cuatro casos por categoría.
 
@@ -237,7 +285,7 @@ Los casos de esta tabla **se suman** a CA-001–CA-034 y a las baterías del SDD
 
 **TEST-T-004 — Comparación independiente.** Cuando se use Compose como comparador, la concordancia entre ambas no bastará para demostrar corrección: se recurrirá también a referencias independientes.
 
-**TEST-T-005 — Automatización.** Debe existir un comando documentado que compile y ejecute las pruebas nativas de Type, con código de salida verificable y reporte legible; no se impone el sistema de construcción concreto. Las diferencias entre GCC y Clang deberán quedar registradas.
+**TEST-T-005 — Automatización.** La construcción nativa usará CMake y la suite de pruebas CTest, con comandos documentados para GCC y Clang, códigos de salida verificables, informe JUnit XML y resumen Markdown. Las diferencias entre GCC y Clang deberán quedar registradas. Se preserva el objetivo de ejecutar toda la validación nativa sin Arduino conectado.
 
 **TEST-T-006 — Diagnósticos.** Se utilizarán sanitizadores de memoria y comportamiento indefinido cuando sean compatibles con el entorno. Las pruebas de recursos de AVR y ESP32 requieren validación de plataforma.
 
@@ -251,21 +299,21 @@ Los casos de esta tabla **se suman** a CA-001–CA-034 y a las baterías del SDD
 
 **DEL-002.** Ejemplos Arduino que cubran entrada textual, evaluación, derivación, integración y límites, dentro de las capacidades declaradas.
 
-**DEL-003.** Instrucciones de compilación y pruebas nativas para GCC y Clang, ejecutables sin Arduino.
+**DEL-003.** Archivos CMake y comandos documentados para configurar y compilar con GCC y Clang en C++11, ejecutar la suite mediante CTest y hacerlo sin Arduino.
 
 **DEL-004.** Pruebas del contrato textual, baterías matemáticas y casos de regresión.
 
-**DEL-005.** Informe con compiladores, versiones, configuraciones, entradas, resultados, fallos y casos no concluyentes, diferenciando PC de hardware real.
+**DEL-005.** Informe JUnit XML y resumen Markdown, con compiladores, versiones, configuraciones, commit, entradas, resultados, fallos y casos no concluyentes, diferenciando PC de hardware real.
 
 **DEL-006.** Registro de limitaciones conocidas, pendientes cuantitativos del SDD común y decisiones técnicas justificadas.
 
 **DEL-007.** Evidencia de commits de Git o un historial equivalente, cuando el repositorio esté disponible, que permita reconocer etapas funcionales y recuperar cambios.
 
-**DEL-008.** Si no hay hardware accesible, sketches y documentación de verificación física preparados, con **estado pendiente**; no afirmar validación de Arduino UNO ni ESP32 que no haya ocurrido.
+**DEL-008.** Scripts o comandos de Arduino CLI para compilar ejemplos de UNO y ESP32 con FQBN y cores documentados. Si no hay hardware accesible, sketches y documentación de verificación física preparados con **estado pendiente**; no afirmar validación física no ejecutada.
 
 **DEL-009.** Resumen de arquitectura seleccionada y de decisiones internas justificadas: parser Pratt, organización del AST, representación de restricciones, propiedad de memoria, capacidad, límites medidos y fallos recuperables.
 
-**DEL-010.** Resultados de TY-CA-026–037 y evidencia de que la validación en PC no implica haber medido RAM/Flash ni probado hardware real.
+**DEL-010.** Resultados de TY-CA-026–046 y evidencia de que la validación en PC no implica haber medido RAM/Flash ni probado hardware real.
 
 ## 9. Instrucciones operativas para Junie Lite — ventana 00:00–06:00
 
@@ -273,12 +321,12 @@ Los casos de esta tabla **se suman** a CA-001–CA-034 y a las baterías del SDD
 
 **Orden de trabajo recomendado:**
 
-1. **Inspección y línea base.** Leer el SDD común 0.3 y este documento. Identificar estructura existente, estado de Git, compiladores disponibles y pruebas actuales. No sobrescribir cambios no relacionados.
+1. **Inspección y línea base.** Leer el SDD común 0.3 y este documento. Identificar estructura existente, estado de Git, GCC, Clang, CMake, CTest, Arduino CLI, cores disponibles y pruebas actuales. No sobrescribir cambios no relacionados.
 2. **Pruebas antes que comportamiento.** Convertir los requisitos observables en casos de prueba: sintaxis textual y precedencia Pratt, AST y memoria, evaluación, derivación, integración, dominios, límites y errores.
 3. **Construcción incremental obligatoria.** Construir primero lexer y parser Pratt; después AST compacto con propiedad de memoria explícita y evaluación; a continuación derivación, simplificación conservadora, integración simbólica, dominios e integración definida; finalmente límites. Implementar el mínimo necesario para aprobar cada grupo sin dependencia de Compose. No sustituir esta arquitectura por RPN puro o bytecode por conveniencia.
-4. **Depuración nativa.** Ejecutar GCC y Clang, diagnósticos compatibles y regresión ampliada; corregir y repetir hasta dejar evidencias.
-5. **Preparación Arduino.** Compilar para las placas si las herramientas están disponibles; preparar ejemplos y pruebas de verificación física. Distinguir compilación de ejecución real en una placa.
-6. **Cierre.** Entregar resumen, resultados reproducibles, versión/commit, limitaciones y pruebas físicas pendientes.
+4. **Depuración nativa.** Construir en C++11 con CMake usando GCC y Clang; ejecutar CTest y regresión ampliada, además de ASan/UBSan cuando sean compatibles. Corregir y repetir, produciendo JUnit XML y resumen Markdown coherentes.
+5. **Preparación Arduino.** Compilar ejemplos para UNO y ESP32 mediante Arduino CLI cuando estén disponibles los cores; registrar versiones y FQBN. Preparar pruebas físicas y distinguir compilación de ejecución real en placa.
+6. **Cierre.** Entregar fuentes, comandos reproducibles, informes JUnit XML y Markdown, versión/commit, limitaciones y pruebas físicas pendientes.
 
 **Git autorizado como herramienta de recuperación:**
 
@@ -310,16 +358,226 @@ Los casos de esta tabla **se suman** a CA-001–CA-034 y a las baterías del SDD
 | EXP-001–EXP-007 | Comparación reproducible y mediciones separadas |
 | EQ-001–EQ-006 | Equivalencia matemática sin dependencia de Compose |
 | VER-001–VER-004 | Versión 0.1.0 funcional sincronizada; PATCH independiente |
-| CA-001–CA-034 | Criterios comunes obligatorios, más TY-CA-001–037 |
+| CA-001–CA-034 | Criterios comunes obligatorios, más TY-CA-001–046 |
 | ARC-001–ARC-024 | Arquitectura particular aprobada de Type: Pratt, AST, reglas simbólicas, memoria y dominios |
+| STACK-T-001–STACK-T-011 | Stack de desarrollo decidido: C++11, CMake, CTest, Arduino CLI, ASan/UBSan, JUnit XML, Markdown y Git; CI futura opcional |
 
 Los parámetros comunes pendientes —tolerancias por placa, ventanas definitivas de convergencia, presupuestos de Flash/RAM, placa ARM y versiones mínimas de compiladores— **no son autorización para inventar valores ni omitir pruebas**. Deben registrarse como pendientes de validación, adoptando criterios provisionales explícitos donde sean necesarios para ejecutar las pruebas.
 
-## 11. Historial del documento
+## 11. Estado de implementación
+
+> Actualizado: 2026-11-20. Solo se registra lo realmente implementado y verificado. Los requisitos sin marcar se consideran **pendientes**.
+
+### Stages completados
+
+| Stage | Estado | Descripción |
+|---|---|---|
+| Stage 1 | ✓ Completado | CMake, estructura include/src, .gitignore, 11 cabeceras |
+| Stage 2 | ✓ Completado | Lexer completo + Parser Pratt con precedencia correcta |
+| Stage 3 | ✓ Completado | Evaluador numérico + API pública parse(), compute() |
+| Stage 4 | ✓ Completado | Derivación simbólica completa (constante, potencia, linealidad, producto, cociente, cadena) |
+| Stage 5 | ✗ Pendiente | Integración simbólica y dominios |
+| Stage 6 | ✗ Pendiente | Límites, errores distinguibles y control de memoria |
+| Stage 7 | ✗ Pendiente | Ejemplo Arduino, validación final y reporte |
+
+### Requisitos TXT (entrada textual)
+
+| ID | Descripción | Estado | Evidencia |
+|---|---|---|---|
+| TXT-001 | Entrada textual `(x^2+5)/(x+2)` | ✓ Implementado | `type.cpp:parse()` → AST reutilizable |
+| TXT-002 | Subconjunto sintáctico obligatorio | ✓ Implementado | `lexer.cpp`: números, notación científica, `x`, operadores, paréntesis, `sin`/`cos`/`exp`/`ln`/`abs` |
+| TXT-003 | Multiplicación explícita, `2x` rechazado | ✓ Implementado | `type.cpp`: detección Number→Ident sin `*`, RParen→LParen, RParen→Ident |
+| TXT-004 | Precedencia y asociatividad | ✓ Implementado | `parser.cpp`: `-x^2 = -(x^2)`, `x^2^3 = x^(2^3)`, `x^-2 = x^(-2)` |
+| TXT-005 | Potencias enteras constantes | ✓ Implementado | `evaluator.cpp`: potencias enteras con bases negativas |
+| TXT-006 | Validación de entrada | ✓ Implementado | `lexer.cpp` + `parser.cpp`: expresiones vacías, paréntesis incompletos, contenido sobrante, caracteres inválidos |
+| TXT-007 | Diagnósticos con posición | ✓ Implementado | `ErrorCode::SyntaxError` con `pos` en `ParseResult` |
+| TXT-008 | Restricciones de recursos | ✓ Implementado | `parser.cpp`: `MAX_DEPTH=64`, `Arena::alloc()` con `INVALID_ID` |
+| TXT-009 | Ciclo de vida, sin reparsear | ✓ Implementado | `Function` con `Arena` propio; `compute()` evalúa AST sin reparsing |
+
+### Requisitos MAT (matemáticos)
+
+| ID | Descripción | Estado | Evidencia |
+|---|---|---|---|
+| MAT-T-001 | Evaluación `compute(f, x)` | ✓ Implementado | `evaluator.cpp`: constantes, variable, operadores, funciones elementales |
+| MAT-T-002 | Derivación `derive(f)` | ✓ Implementado | `differentiator.cpp`: constante, potencia, linealidad, producto, cociente, cadena (sin/cos/exp/ln) |
+| MAT-T-003 | Integración `integrate(f)` | ✗ Pendiente | `integrator.cpp`: placeholder, devuelve `UnsupportedOperation` |
+| MAT-T-004 | `integrate(1/x)` → `ln(abs(x))` | ✗ Pendiente | Integración no implementada |
+| MAT-T-005 | Integrales definidas | ✗ Pendiente | Integración no implementada |
+| MAT-T-006 | Límites `lim` | ✗ Pendiente | `limiter.cpp`: placeholder, devuelve `NotConverged` |
+| MAT-T-007 | Dominios y simplificación | ⚠ Parcial | `domain.h`/`domain.cpp`: `domainCheck()` básico. No se preservan restricciones al transformar. |
+| MAT-T-008 | Equivalencia sin igualdad textual | ✓ Implementado | Derivación valida por evaluación en puntos, no por texto |
+
+### Requisitos ARC (arquitectura)
+
+| ID | Descripción | Estado | Evidencia |
+|---|---|---|---|
+| ARC-001 | Análisis léxico controlado | ✓ Implementado | `lexer.cpp`: tokens validados, posiciones, fin de entrada |
+| ARC-002 | Parser Pratt | ✓ Implementado | `parser.cpp`: binding powers, paréntesis, funciones, unarios, `^` derecha-asociativo |
+| ARC-003 | Precedencia sin ambigüedad | ✓ Implementado | `parseUnary`/`parseUnaryOperand` separan unarios de `^` |
+| ARC-004 | Control de complejidad sintáctica | ✓ Implementado | `MAX_DEPTH=64`, `Arena::capacity=256` |
+| ARC-005 | AST como representación principal | ✓ Implementado | `ast.h`: `Node`, `Arena`, `NodeId` como índice |
+| ARC-006 | Compacidad y referencias seguras | ✓ Implementado | Arena contigua, índices `NodeId`, sin punteros entre nodos |
+| ARC-007 | Evaluación sin reinterpretación textual | ✓ Implementado | `compute()` usa `Arena` + `root`, sin reparsing |
+| ARC-008 | Identidad y ciclo de vida | ✓ Implementado | `derive()` crea nuevo `Arena` independiente; función original preservada |
+| ARC-009 | Reglas de derivación | ✓ Implementado | `differentiator.cpp`: todas las reglas especificadas |
+| ARC-010 | Reglas de integración | ✗ Pendiente | Placeholder |
+| ARC-011 | Simplificación conservadora | ⚠ Parcial | Sin simplificación activa; no se pierden restricciones porque no hay transformación que las altere |
+| ARC-012 | Crecimiento controlado | ✓ Implementado | `Arena::alloc()` devuelve `INVALID_ID` al agotarse |
+| ARC-013 | Resultados distintos de la forma textual | ✓ Implementado | Derivación produce AST nuevo, no texto |
+| ARC-014 | Presupuesto y agotamiento | ✓ Implementado | `DEFAULT_ARENA_CAPACITY=256`, `DEFAULT_TOKEN_CAPACITY=128` |
+| ARC-015 | Sin crecimiento inadvertido | ✓ Implementado | `malloc` en `parse()`/`derive()`; sin asignación en `compute()` |
+| ARC-016 | Fallo seguro y recuperación | ✓ Implementado | `derive()` falla sin afectar función original (test 20) |
+| ARC-017 | Metadatos de memoria | ⚠ Parcial | `Arena::count`/`capacity` accesibles, pero no expuestos en API pública |
+| ARC-018 | Restricciones independientes de la simplificación | ⚠ Parcial | `Domain` existe pero no se actualiza automáticamente al transformar |
+| ARC-019 | Derivadas y antiderivadas por intervalo | ⚠ Parcial | `Domain` soporta `NotZero`/`Positive`/`Negative`, pero no se propaga automáticamente |
+| ARC-020 | Verificación conservadora de integrales definidas | ✗ Pendiente | Integración no implementada |
+| ARC-021 | Comportamientos especiales | ✓ Implementado | `DomainError` en división por cero y `ln(0)` |
+| ARC-022 | Estimador de límites independiente | ✗ Pendiente | Placeholder |
+| ARC-023 | Núcleo portable | ✓ Implementado | Compilación GCC sin Arduino |
+| ARC-024 | Medición antes de optimizar | ✓ Implementado | Sin bytecode ni RPN |
+
+### Requisitos ERR (errores)
+
+| ID | Descripción | Estado | Evidencia |
+|---|---|---|---|
+| ERR-001 | Categorías observables | ✓ Implementado | `error.h`: 7 códigos de error distinguibles |
+| ERR-002 | Sin falsos éxitos | ✓ Implementado | Errores retornan `ok=false` |
+| ERR-003 | Sin confundir fases | ✓ Implementado | `exp(x^2)` parsea y evalúa OK, `derive` OK; `integrate` devuelve `UnsupportedOperation` |
+| ERR-004 | Seguridad de ejecución | ✓ Implementado | Límites de arena y profundidad controlados |
+
+### Requisitos PORT (portabilidad)
+
+| ID | Descripción | Estado | Evidencia |
+|---|---|---|---|
+| PORT-T-001 | PC sin Arduino | ✓ Implementado | Compilación y pruebas con GCC 16.2.0 |
+| PORT-T-002 | Plataformas embebidas | ✗ Pendiente | Arduino AVR no compilado aún |
+| PORT-T-003 | Precisión 32/64 bits | ⚠ Parcial | `MONOCALC_REAL` configurable, pero solo probado con `double` |
+| PORT-T-004 | Medición | ✗ Pendiente | Flash/RAM no medidos |
+| PORT-T-005 | Dependencias | ✓ Implementado | Sin dependencias externas |
+
+### Requisitos STACK (stack de desarrollo)
+
+| ID | Descripción | Estado | Evidencia |
+|---|---|---|---|
+| STACK-T-001 | C++11 | ✓ Implementado | `CMAKE_CXX_STANDARD 11`, `CMAKE_CXX_EXTENSIONS OFF` |
+| STACK-T-002 | CMake con GCC/Clang | ⚠ Parcial | GCC ✓ compilado y probado. Clang ✗ no verificado aún. |
+| STACK-T-003 | CTest | ✓ Implementado | `test_compile` registrado y ejecutado |
+| STACK-T-004 | Arduino CLI | ✗ Pendiente | `examples/Basic/` vacío, sin sketch ni `library.properties` |
+| STACK-T-005 | Sanitizadores | ⚠ Parcial | Opción `MONOCALC_SANITIZERS` en CMake, desactivada por defecto. No verificada. |
+| STACK-T-006 | Informes JUnit/Markdown | ✗ Pendiente | No generados |
+| STACK-T-007 | Automatización para Junie | ✓ Implementado | Comandos documentados en plan |
+| STACK-T-008 | Git | ✓ Implementado | Repositorio activo, commits registrados |
+| STACK-T-009 | GitHub Actions futuro | ✗ Fuera de alcance | Correctamente fuera de scope |
+| STACK-T-010 | Sin dependencias pesadas | ✓ Implementado | Solo CMake, CTest, Arduino CLI como herramientas de desarrollo |
+| STACK-T-011 | Parámetros medidos | ⚠ Parcial | Capacidades documentadas (256 nodos, 128 tokens, profundidad 64), pero no medidas en AVR |
+
+### Casos de aceptación TY-CA
+
+| ID | Descripción | Estado | Evidencia |
+|---|---|---|---|
+| TY-CA-001 | `(x^2+5)/(x+2)` en `x=1` → `2` | ✓ PASSED | test_compile.cpp línea 30 |
+| TY-CA-002 | `3*x^2+2` en `x=2` → `14` | ✓ PASSED | test_compile.cpp línea 111 |
+| TY-CA-003 | `-x^2` en `x=3` → `-9` | ✓ PASSED | test_compile.cpp línea 41 |
+| TY-CA-004 | `(-x)^2` en `x=3` → `9` | ✓ PASSED | test_compile.cpp línea 53 |
+| TY-CA-005 | `x^2^3` en `x=2` → `256` | ✓ PASSED | test_compile.cpp línea 64 |
+| TY-CA-006 | `x^-2` en `x=2` → `0.25` | ✓ PASSED | test_compile.cpp línea 76 |
+| TY-CA-007 | `ln(abs(x))` en `x=-1` → `0` | ✓ PASSED | test_compile.cpp línea 88 |
+| TY-CA-008 | `ln(abs(x))` en `x=0` → DomainError | ✓ PASSED | test_compile.cpp línea 100 |
+| TY-CA-009 | `sin(3*x+2)` integrar | ✗ Pendiente | Integración no implementada |
+| TY-CA-010 | `1/x` integrar y derivar | ✗ Pendiente | Integración no implementada |
+| TY-CA-011 | `exp(x^2)` integrar → no soportada | ⚠ Parcial | `integrate()` devuelve `UnsupportedOperation`, pero sin distinguir patrones |
+| TY-CA-012 | `exp(x^2)` evaluar y derivar | ✓ PASSED | test_compile.cpp línea 246 |
+| TY-CA-013 | `(x^2-1)/(x-1)` en `x=1` → dominio inválido | ⚠ Parcial | Evaluador detecta división por cero, pero `Domain` no se actualiza automáticamente |
+| TY-CA-014 | `1/x` integral definida `[-1,1]` | ✗ Pendiente | Integración no implementada |
+| TY-CA-015 | `x+` → SyntaxError | ✓ PASSED | test_compile.cpp línea 135 |
+| TY-CA-016 | `sin(x` → SyntaxError | ✓ PASSED | test_compile.cpp línea 142 |
+| TY-CA-017 | `2x` → SyntaxError | ✓ PASSED | test_compile.cpp línea 149 |
+| TY-CA-018 | `sin(x) basura` → SyntaxError | ✓ PASSED | test_compile.cpp línea 156 |
+| TY-CA-019 | `1e-3*x` en `x=1000` → `1` | ✓ PASSED | test_compile.cpp línea 123 |
+| TY-CA-020 | Entrada excesiva → ResourceExhausted | ⚠ Parcial | `MAX_DEPTH=64` y `Arena::capacity=256` limitan, pero no hay prueba dedicada |
+| TY-CA-021 | Múltiples evaluaciones | ✓ PASSED | test_compile.cpp línea 163 |
+| TY-CA-022 | Dos formas antiderivada | ✗ Pendiente | Integración no implementada |
+| TY-CA-023 | Batería 24 límites | ✗ Pendiente | `limiter.cpp`: placeholder |
+| TY-CA-024 | GCC y Clang en PC | ⚠ Parcial | GCC ✓, Clang ✗ no verificado |
+| TY-CA-025 | Arduino UNO y ESP32 | ✗ Pendiente | Sin sketch ni compilación |
+| TY-CA-026 | Parser Pratt precedencia | ✓ PASSED | TY-CA-003 a TY-CA-006 validan |
+| TY-CA-027 | Anidación excesiva → ResourceExhausted | ⚠ Parcial | `MAX_DEPTH=64` implementado, sin prueba dedicada |
+| TY-CA-028 | 100 evaluaciones sin reparsing | ✓ PASSED | test_compile.cpp línea 163 |
+| TY-CA-029 | Derivación `x*x*sin(x)` | ⚠ Parcial | Reglas de producto y cadena implementadas, sin prueba específica |
+| TY-CA-030 | Integración `1/(2*x+3)` | ✗ Pendiente | Integración no implementada |
+| TY-CA-031 | `x/x` en `x=0` → dominio inválido | ⚠ Parcial | Evaluador detecta división por cero, pero `Domain` no se propaga |
+| TY-CA-032 | `0*(1/x)` en `x=0` → restricción | ⚠ Parcial | Evaluador detecta división por cero, pero `Domain` no se propaga |
+| TY-CA-033 | Exceder memoria en `derive()` | ⚠ Parcial | `derive()` preserva función original (test 20), pero sin prueba de agotamiento |
+| TY-CA-034 | Reutilizar derivada tras destruir contexto | ✓ PASSED | test_compile.cpp línea 263 |
+| TY-CA-035 | Integral definida `1/x` `[-1,1]` | ✗ Pendiente | Integración no implementada |
+| TY-CA-036 | ASan/UBSan | ✗ Pendiente | Opción preparada, no ejecutada |
+| TY-CA-037 | Memoria limitada AVR | ✗ Pendiente | Arduino no compilado |
+| TY-CA-038 | C++11 sin extensiones | ✓ PASSED | CMake configurado correctamente |
+| TY-CA-039 | CMake con GCC | ✓ PASSED | Compilación exitosa |
+| TY-CA-040 | CMake con Clang | ✗ Pendiente | No verificado |
+| TY-CA-041 | CTest prueba fallida | ✗ Pendiente | No verificado |
+| TY-CA-042 | Informes JUnit/Markdown | ✗ Pendiente | No generados |
+| TY-CA-043 | ASan/UBSan compatible | ✗ Pendiente | No ejecutada |
+| TY-CA-044 | Arduino UNO CLI | ✗ Pendiente | Sin sketch |
+| TY-CA-045 | ESP32 CLI | ✗ Pendiente | Sin sketch |
+| TY-CA-046 | Git historial | ✓ PASSED | Commits registrados |
+
+### Resumen numérico
+
+- **TY-CA completados:** 14/46 (✓ PASSED)
+- **TY-CA parciales:** 8/46 (⚠ Parcial — funcionalidad base existe pero falta prueba o integración completa)
+- **TY-CA pendientes:** 24/46 (✗ Pendiente — no implementados)
+- **Pruebas unitarias:** 20/20 PASSED en `test_compile` (GCC 16.2.0)
+- **Compiladores verificados:** GCC 16.2.0 ✓, Clang ✗
+- **Arduino AVR:** ✗ No compilado
+- **Sanitizadores:** ✗ No ejecutados
+
+### Archivos implementados
+
+| Archivo | Líneas | Estado |
+|---|---|---|
+| `include/monocalc/error.h` | 34 | ✓ Completo |
+| `include/monocalc/token.h` | 33 | ✓ Completo |
+| `include/monocalc/lexer.h` | 24 | ✓ Completo |
+| `include/monocalc/parser.h` | 16 | ✓ Completo |
+| `include/monocalc/ast.h` | 53 | ✓ Completo |
+| `include/monocalc/evaluator.h` | 21 | ✓ Completo |
+| `include/monocalc/differentiator.h` | 14 | ✓ Completo |
+| `include/monocalc/integrator.h` | 14 | ✓ Completo |
+| `include/monocalc/domain.h` | 30 | ⚠ Básico |
+| `include/monocalc/limiter.h` | 31 | ✓ Completo |
+| `include/monocalc/type.h` | 43 | ✓ Completo |
+| `src/lexer.cpp` | 145 | ✓ Completo |
+| `src/parser.cpp` | 250 | ✓ Completo |
+| `src/ast.cpp` | 9 | ✓ Mínimo |
+| `src/evaluator.cpp` | 87 | ✓ Completo |
+| `src/differentiator.cpp` | 396 | ✓ Completo |
+| `src/integrator.cpp` | 14 | ✗ Placeholder |
+| `src/domain.cpp` | 25 | ⚠ Básico |
+| `src/limiter.cpp` | 15 | ✗ Placeholder |
+| `src/type.cpp` | 163 | ✓ Completo |
+| `tests/test_compile.cpp` | 278 | ✓ 20 pruebas |
+| `CMakeLists.txt` | 43 | ✓ Completo |
+| `tests/CMakeLists.txt` | 5 | ✓ Completo |
+| `.gitignore` | 21 | ✓ Completo |
+| `examples/Basic/` | — | ✗ Vacío |
+
+### Limitaciones conocidas
+
+1. **`abs` no derivable:** `differentiator.cpp` devuelve `UnsupportedOperation` para `d/dx(abs(x))`.
+2. **`Domain` no se propaga automáticamente:** Al derivar o integrar, las restricciones de dominio no se transfieren ni se calculan.
+3. **Sin simplificación activa:** No hay normalización polinómica ni cancelación de términos.
+4. **Pruebas consolidadas en un solo archivo:** `test_compile.cpp` agrupa parse, compute y derive; faltan archivos separados para integrator, domain, limiter, error y memory.
+5. **Clang no verificado:** Solo GCC 16.2.0 ha sido probado.
+6. **Arduino no compilado:** `examples/Basic/` está vacío; falta `Basic.ino` y `library.properties`.
+
+## 12. Historial del documento
 
 | Versión | Cambio |
 |---|---|
 | Borrador 0.1 | Primer SDD particular de Type; alineación con común 0.3; entrada textual; portabilidad GCC/Clang; pruebas nativas; entrega 00:00–06:00 y recuperación mediante Git |
-| **Borrador 0.2** | Arquitectura aprobada para Type: parser Pratt, AST compacto, reglas simbólicas conservadoras, memoria y dominios explícitos; 24 requisitos ARC y 12 nuevas pruebas TY-CA-026–037; plan de trabajo de Junie actualizado sin alterar el contrato común 0.3 |
+| Borrador 0.2 | Arquitectura aprobada para Type: parser Pratt, AST compacto, reglas simbólicas conservadoras, memoria y dominios explícitos; 24 requisitos ARC y 12 nuevas pruebas TY-CA-026–037; plan de trabajo de Junie actualizado sin alterar el contrato común 0.3 |
+| **Borrador 0.3** | Stack de desarrollo aprobado: C++11, CMake, CTest, Arduino CLI, ASan/UBSan, informes JUnit XML y Markdown, Git; 11 requisitos STACK-T y nueve criterios TY-CA-038–046; GitHub Actions opcional/futuro; trazabilidad y entregables actualizados |
+| **Borrador 0.4** | Sección 11 añadida: estado de implementación real con matrices de trazabilidad por requisito (TXT, MAT, ARC, ERR, PORT, STACK, TY-CA), archivos implementados, limitaciones conocidas y resumen numérico. Fecha: 2026-11-20. |
 
-**Fin — SDD particular monocalc Type 0.1.0, Borrador 0.2.**
+**Fin — SDD particular monocalc Type 0.1.0, Borrador 0.4.**

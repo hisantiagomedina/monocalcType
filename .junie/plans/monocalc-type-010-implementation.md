@@ -339,7 +339,7 @@ Implementar reglas de derivación que transforman el AST en un nuevo AST.
 - `test_differentiator.cpp`: TY-CA-012, TY-CA-029, TY-CA-034. Validar por evaluación en puntos representativos.
 - Compilar y ejecutar pruebas; corregir errores.
 
-### * Step 5: Stage 5: Integración simbólica y dominios
+###   Step 5: Stage 5: Integración simbólica y dominios
 Implementar integración simbólica conservadora y gestión de dominios.
 - `integrator.h` / `integrator.cpp`: reglas para constantes, polinomios, `sin`, `cos`, `exp`, `1/x` → `ln(abs(x))`, composiciones afines `a*x+b`. Rechazar explícitamente patrones no soportados (ej. `exp(x^2)`).
 - `domain.h` / `domain.cpp`: representar restricciones (`x != 0`, `x > 0`, etc.). Validar dominios en evaluación y en integrales definidas.
