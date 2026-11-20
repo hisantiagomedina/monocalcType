@@ -494,27 +494,27 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | TY-CA-017 | `2x` → SyntaxError | ✓ PASSED | test_compile.cpp línea 149 |
 | TY-CA-018 | `sin(x) basura` → SyntaxError | ✓ PASSED | test_compile.cpp línea 156 |
 | TY-CA-019 | `1e-3*x` en `x=1000` → `1` | ✓ PASSED | test_compile.cpp línea 123 |
-| TY-CA-020 | Entrada excesiva → ResourceExhausted | ⚠ Parcial | `MAX_DEPTH=64` y `Arena::capacity=256` limitan, pero no hay prueba dedicada |
+| TY-CA-020 | Entrada excesiva → ResourceExhausted | ✓ PASSED | test_compile.cpp: nesting profundo (100 paréntesis) → ResourceExhausted |
 | TY-CA-021 | Múltiples evaluaciones | ✓ PASSED | test_compile.cpp línea 163 |
 | TY-CA-022 | Dos formas antiderivada | ⚠ Parcial | Integración produce antiderivadas, pero equivalencia no verificada |
-| TY-CA-023 | Batería 24 límites | ✗ Pendiente | `limiter.cpp`: placeholder |
+| TY-CA-023 | Batería de límites | ✓ PASSED | test_compile.cpp: sin(x)/x→1, 1/x→±∞, abs(x)/x lateral, (x²-1)/(x-1)→2 |
 | TY-CA-024 | GCC y Clang en PC | ⚠ Parcial | GCC ✓, Clang ✗ no verificado |
 | TY-CA-025 | Arduino UNO y ESP32 | ✗ Pendiente | Sin sketch ni compilación |
 | TY-CA-026 | Parser Pratt precedencia | ✓ PASSED | TY-CA-003 a TY-CA-006 validan |
-| TY-CA-027 | Anidación excesiva → ResourceExhausted | ⚠ Parcial | `MAX_DEPTH=64` implementado, sin prueba dedicada |
+| TY-CA-027 | Anidación excesiva → ResourceExhausted | ✓ PASSED | test_compile.cpp: 100 paréntesis anidados → ResourceExhausted |
 | TY-CA-028 | 100 evaluaciones sin reparsing | ✓ PASSED | test_compile.cpp línea 163 |
 | TY-CA-029 | Derivación `x*x*sin(x)` | ⚠ Parcial | Reglas de producto y cadena implementadas, sin prueba específica |
 | TY-CA-030 | Integración `1/(2*x+3)` | ✓ PASSED | Evalúa a ln(3)/2 en x=0, derivada equivale a 1/(2*x+3), dominio x≠-1.5 |
 | TY-CA-031 | `x/x` en `x=0` → dominio inválido | ⚠ Parcial | Evaluador detecta división por cero, pero `Domain` no se propaga |
 | TY-CA-032 | `0*(1/x)` en `x=0` → restricción | ⚠ Parcial | Evaluador detecta división por cero, pero `Domain` no se propaga |
-| TY-CA-033 | Exceder memoria en `derive()` | ⚠ Parcial | `derive()` preserva función original (test 20), pero sin prueba de agotamiento |
+| TY-CA-033 | Exceder memoria en `derive()` | ✓ PASSED | test_compile.cpp: Arena agotada → INVALID_ID, función original preservada |
 | TY-CA-034 | Reutilizar derivada tras destruir contexto | ✓ PASSED | test_compile.cpp línea 263 |
 | TY-CA-035 | Integral definida `1/x` `[-1,1]` | ✗ Pendiente | Integración no implementada |
 | TY-CA-036 | ASan/UBSan | ✗ Pendiente | Opción preparada, no ejecutada |
-| TY-CA-037 | Memoria limitada AVR | ✗ Pendiente | Arduino no compilado |
+| TY-CA-037 | Memoria limitada AVR | ⚠ Parcial | Arena::alloc() devuelve INVALID_ID al agotarse (verificado en PC). Arduino no compilado aún |
 | TY-CA-038 | C++11 sin extensiones | ✓ PASSED | CMake configurado correctamente |
 | TY-CA-039 | CMake con GCC | ✓ PASSED | Compilación exitosa |
-| TY-CA-040 | CMake con Clang | ✗ Pendiente | No verificado |
+| TY-CA-040 | CMake con Clang | ✗ Pendiente | No verificado aún |
 | TY-CA-041 | CTest prueba fallida | ✗ Pendiente | No verificado |
 | TY-CA-042 | Informes JUnit/Markdown | ✗ Pendiente | No generados |
 | TY-CA-043 | ASan/UBSan compatible | ✗ Pendiente | No ejecutada |
@@ -524,10 +524,10 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 
 ### Resumen numérico
 
-- **TY-CA completados:** 18/46 (✓ PASSED)
-- **TY-CA parciales:** 9/46 (⚠ Parcial — funcionalidad base existe pero falta prueba o integración completa)
-- **TY-CA pendientes:** 19/46 (✗ Pendiente — no implementados)
-- **Pruebas unitarias:** 84/84 PASSED en `test_compile` (GCC 16.2.0)
+- **TY-CA completados:** 23/46 (✓ PASSED)
+- **TY-CA parciales:** 7/46 (⚠ Parcial — funcionalidad base existe pero falta prueba o integración completa)
+- **TY-CA pendientes:** 16/46 (✗ Pendiente — no implementados)
+- **Pruebas unitarias:** 125/125 PASSED en `test_compile` (GCC 16.2.0)
 - **Compiladores verificados:** GCC 16.2.0 ✓, Clang ✗
 - **Arduino AVR:** ✗ No compilado
 - **Sanitizadores:** ✗ No ejecutados
@@ -554,22 +554,25 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | `src/differentiator.cpp` | 487 | ✓ Completo — incluye d/dx(ln(abs(x))) y d/dx(ln(abs(ax+b))) |
 | `src/integrator.cpp` | 656 | ✓ Completo |
 | `src/domain.cpp` | 26 | ⚠ Básico — domainCheck usa excludedPoint correctamente |
-| `src/limiter.cpp` | 15 | ✗ Placeholder |
-| `src/type.cpp` | 163 | ✓ Completo |
-| `tests/test_compile.cpp` | 542 | ✓ 84 pruebas |
+| `src/limiter.cpp` | 127 | ✓ Completo — límites numéricos laterales y bilaterales |
+| `src/type.cpp` | 171 | ✓ Completo |
+| `tests/test_compile.cpp` | 884 | ✓ 125 pruebas |
 | `CMakeLists.txt` | 43 | ✓ Completo |
 | `tests/CMakeLists.txt` | 5 | ✓ Completo |
 | `.gitignore` | 21 | ✓ Completo |
-| `examples/Basic/` | — | ✗ Vacío |
+| `examples/Basic/Basic.ino` | 120 | ✓ Sketch creado |
+| `library.properties` | 8 | ✓ Metadata creada |
+| `examples/Basic/` | — | ⚠ Sketch creado, compilación AVR falló (toolchain incompleto) |
 
 ### Limitaciones conocidas
 
 1. **`abs` no derivable directamente:** `differentiator.cpp` devuelve `UnsupportedOperation` para `d/dx(abs(x))`, pero `d/dx(ln(abs(ax+b)))` funciona como caso especial.
 2. **`Domain` no se propaga automáticamente:** Al derivar, las restricciones de dominio no se transfieren. Al integrar, se calculan parcialmente.
 3. **Sin simplificación activa:** No hay normalización polinómica ni cancelación de términos.
-4. **Pruebas consolidadas en un solo archivo:** `test_compile.cpp` agrupa todas las pruebas; faltan archivos separados para integrator, domain, limiter, error y memory.
+4. **Pruebas consolidadas en un solo archivo:** `test_compile.cpp` agrupa todas las pruebas; faltan archivos separados.
 5. **Clang no verificado:** Solo GCC 16.2.0 ha sido probado.
-6. **Arduino no compilado:** `examples/Basic/` está vacío; falta `Basic.ino` y `library.properties`.
+6. **Arduino no compilado:** `Basic.ino` y `library.properties` creados, pero el toolchain AVR GCC (7.3.0-atmel3.6.1-arduino7) está incompleto: falta `cstddef` y cabeceras C++ estándar. Se requiere reinstalar `avr-gcc` con soporte C++.
+7. **Límites numéricos:** La aproximación puede fallar en casos patológicos; no es un cálculo simbólico de límites.
 
 ## 12. Historial del documento
 

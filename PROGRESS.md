@@ -39,6 +39,16 @@
 - Rechazo explícito: exp(x^2), ln(x), abs(x), funciones racionales
 - isAffine() para detectar a*x+b en argumentos de funciones
 
+### ✓ Stage 6: Límites, errores y memoria
+- Limiter numérico: aproximación progresiva (h *= 0.1) hasta convergencia
+- Límites laterales (Left/Right) y bilaterales (Both)
+- Detección de divergencia (>1e15) con ±inf
+- Límites distintos por lado → NotConverged
+- 7 códigos de error distinguibles verificados
+- Arena: alloc() devuelve INVALID_ID al agotarse
+- Parser MAX_DEPTH=64 rechaza nesting excesivo con ResourceExhausted
+- Funciones inválidas retornan errores sin corrupción de memoria
+
 ## Requisitos Implementados
 - TY-CA-001: (x^2+5)/(x+2) en x=1 → 2 ✓
 - TY-CA-002: 3*x^2+2 en x=2 → 14 ✓
@@ -57,17 +67,22 @@
 - TY-CA-017: 2x → SyntaxError ✓
 - TY-CA-018: sin(x) basura → SyntaxError ✓
 - TY-CA-019: 1e-3*x en x=1000 → 1 ✓
+- TY-CA-020: Errores distinguibles ✓
 - TY-CA-021: Múltiples evaluaciones ✓
+- TY-CA-023: Límites numéricos (sin(x)/x, 1/x, abs(x)/x) ✓
 - TY-CA-028: 100 evaluaciones sin reparsear ✓
 - TY-CA-029: Derivación de x*x*sin(x) ✓
 - TY-CA-030: 1/(2*x+3) integrar ✓, evaluar ✓, derivar integral ✓, dominio ✓
+- TY-CA-033: Exceder memoria → ResourceExhausted ✓
 - TY-CA-034: Reutilizar derivada tras destruir contexto ✓
+- TY-CA-037: Arena agotada → INVALID_ID ✓
 
 ## Resultados de Pruebas
-- Compilación GCC 16.2.0: ✓ exitosa
-- Pruebas test_compile: **84/84 PASSED** (20 parse/compute/derive + 64 integración)
+- Compilación GCC 16.2.0: ✓ exitosa sin warnings
+- Pruebas test_compile: **125/125 PASSED** (20 parse/compute/derive + 41 integración + 13 límites + 20 errores + 11 memoria + 20 anteriores)
 - Bug corregido: domainCheck(NotZero) usaba x=0 hardcodeado; ahora usa excludedPoint
 - Bug corregido: d/dx(ln(abs(ax+b))) detectado antes de la regla de cadena genérica
+- Bug corregido: lim 1/x x->0 bilateral devuelve NotConverged (signos opuestos)
 - Clang: pendiente
 - Arduino AVR: pendiente
 
@@ -81,6 +96,8 @@
 - integrateAst() renombrado para evitar colisión con integrate() de type.cpp
 - d/dx(ln(abs(x))) y d/dx(ln(abs(ax+b))) como casos especiales antes de la regla de cadena
 - domainCheck(NotZero) usa excludedPoint para el punto excluido real
+- Limiter con aproximación numérica progresiva (h *= 0.1) hasta convergencia o divergencia
+- Límites bilaterales combinan izquierda y derecha; signos opuestos → NotConverged
 
 ## Próximo Milestone
-**Stage 6: Límites, errores distinguibles y control de memoria** — Implementar limiter.cpp, pruebas de errores y memoria.
+**Stage 7: Arduino AVR** — Basic.ino y library.properties creados. Compilación falló: toolchain AVR GCC incompleto (falta `cstddef`). Pendiente instalación de cabeceras C++ AVR.

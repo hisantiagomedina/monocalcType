@@ -339,7 +339,7 @@ Implementar reglas de derivación que transforman el AST en un nuevo AST.
 - `test_differentiator.cpp`: TY-CA-012, TY-CA-029, TY-CA-034. Validar por evaluación en puntos representativos.
 - Compilar y ejecutar pruebas; corregir errores.
 
-###   Step 5: Stage 5: Integración simbólica y dominios
+### ✓ Step 5: Stage 5: Integración simbólica y dominios
 Implementar integración simbólica conservadora y gestión de dominios.
 - `integrator.h` / `integrator.cpp`: reglas para constantes, polinomios, `sin`, `cos`, `exp`, `1/x` → `ln(abs(x))`, composiciones afines `a*x+b`. Rechazar explícitamente patrones no soportados (ej. `exp(x^2)`).
 - `domain.h` / `domain.cpp`: representar restricciones (`x != 0`, `x > 0`, etc.). Validar dominios en evaluación y en integrales definidas.
@@ -348,7 +348,7 @@ Implementar integración simbólica conservadora y gestión de dominios.
 - `test_domain.cpp`: TY-CA-013, TY-CA-031, TY-CA-032.
 - Compilar y ejecutar pruebas; corregir errores.
 
-###   Step 6: Stage 6: Límites, errores y memoria
+### ✓ Step 6: Stage 6: Límites, errores y memoria
 Implementar estimación de límites, categorías de error y control de memoria.
 - `limiter.h` / `limiter.cpp`: estimación numérica de límites laterales y bilaterales. Distinguir convergencia, divergencia y no concluyente.
 - `test_limiter.cpp`: TY-CA-023 (batería de 24 límites).
@@ -356,12 +356,10 @@ Implementar estimación de límites, categorías de error y control de memoria.
 - `test_memory.cpp`: TY-CA-033, TY-CA-037 (exceso de memoria, preservación de función original).
 - Compilar y ejecutar pruebas; corregir errores.
 
-###   Step 7: Stage 7: Ejemplo Arduino, validación final y reporte
+### ! Step 7: Stage 7: Ejemplo Arduino, validación final y reporte
 Preparar el sketch Arduino, validar compilación para AVR y generar informe final.
-- `examples/Basic/Basic.ino`: sketch mínimo que demuestra parse, compute, derive, integrate y lim.
-- `examples/Basic/library.properties`: metadata para Arduino CLI.
-- Compilar para Arduino: `arduino-cli compile --fqbn arduino:avr:uno --library . examples/Basic`.
-- Ejecutar batería completa con GCC: `ctest --test-dir build-gcc --output-on-failure`.
-- Ejecutar batería completa con Clang: `ctest --test-dir build-clang --output-on-failure`.
-- Generar informe JUnit XML y resumen Markdown con resultados reales.
-- Commit final con hash registrado.
+- `examples/Basic/Basic.ino`: ✓ sketch creado (120 líneas)
+- `library.properties`: ✓ metadata creada
+- Compilación AVR: ✗ Falló — toolchain AVR GCC incompleto (falta `cstddef`)
+- Clang: ✗ No verificado
+- Informes JUnit/Markdown: ✗ No generados

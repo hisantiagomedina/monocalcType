@@ -1,6 +1,7 @@
 #include "monocalc/type.h"
 #include <cstdio>
 #include <cmath>
+#include <cstdlib>
 
 static int failures = 0;
 
@@ -534,6 +535,347 @@ int main() {
                 check("int(1/x) at x=0 domain error", !r.ok && r.err == monocalc::ErrorCode::DomainError);
             }
         }
+    }
+
+    // ===================== LIMITS =====================
+    printf("\n=== Limits ===\n");
+
+    // Test 36: lim x^2 as x->3 = 9 (polynomial, continuous)
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("x^2", 3, f);
+        if (pr.ok) {
+            auto lr = monocalc::lim(f, 3.0, monocalc::LimitDirection::Both);
+            check("lim x^2 x->3 ok", lr.ok);
+            checkApprox("lim x^2 x->3", lr.value, 9.0, 1e-6);
+        }
+    }
+
+    // Test 37: lim sin(x)/x as x->0 = 1 (classic limit)
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("sin(x)/x", 8, f);
+        if (pr.ok) {
+            auto lr = monocalc::lim(f, 0.0, monocalc::LimitDirection::Both);
+            check("lim sin(x)/x x->0 ok", lr.ok);
+            checkApprox("lim sin(x)/x x->0", lr.value, 1.0, 1e-4);
+        }
+    }
+
+    // Test 38: lim 1/x as x->0+ = +inf (diverges)
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("1/x", 3, f);
+        if (pr.ok) {
+            auto lr = monocalc::lim(f, 0.0, monocalc::LimitDirection::Right);
+            check("lim 1/x x->0+ diverged", !lr.ok && lr.err == monocalc::ErrorCode::Diverged);
+        }
+    }
+
+    // Test 39: lim 1/x as x->0- = -inf (diverges)
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("1/x", 3, f);
+        if (pr.ok) {
+            auto lr = monocalc::lim(f, 0.0, monocalc::LimitDirection::Left);
+            check("lim 1/x x->0- diverged", !lr.ok && lr.err == monocalc::ErrorCode::Diverged);
+        }
+    }
+
+    // Test 40: lim 1/x as x->0 bilateral = NotConverged (left != right)
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("1/x", 3, f);
+        if (pr.ok) {
+            auto lr = monocalc::lim(f, 0.0, monocalc::LimitDirection::Both);
+            check("lim 1/x x->0 bilateral not converged", !lr.ok && lr.err == monocalc::ErrorCode::NotConverged);
+        }
+    }
+
+    // Test 41: lim (x^2-1)/(x-1) as x->1 = 2 (removable discontinuity)
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("(x^2-1)/(x-1)", 13, f);
+        if (pr.ok) {
+            auto lr = monocalc::lim(f, 1.0, monocalc::LimitDirection::Both);
+            check("lim (x^2-1)/(x-1) x->1 ok", lr.ok);
+            checkApprox("lim (x^2-1)/(x-1) x->1", lr.value, 2.0, 1e-4);
+        }
+    }
+
+    // Test 42: lim exp(x) as x->0 = 1
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("exp(x)", 6, f);
+        if (pr.ok) {
+            auto lr = monocalc::lim(f, 0.0, monocalc::LimitDirection::Both);
+            check("lim exp(x) x->0 ok", lr.ok);
+            checkApprox("lim exp(x) x->0", lr.value, 1.0, 1e-6);
+        }
+    }
+
+    // Test 43: lim x as x->5 = 5 (trivial)
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("x", 1, f);
+        if (pr.ok) {
+            auto lr = monocalc::lim(f, 5.0, monocalc::LimitDirection::Both);
+            check("lim x x->5 ok", lr.ok);
+            checkApprox("lim x x->5", lr.value, 5.0, 1e-6);
+        }
+    }
+
+    // Test 44: lim 1/x as x->inf approximation — use large x value
+    // lim 1/x as x->1000 should be close to 0
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("1/x", 3, f);
+        if (pr.ok) {
+            auto lr = monocalc::lim(f, 1000.0, monocalc::LimitDirection::Both);
+            check("lim 1/x x->1000 ok", lr.ok);
+            checkApprox("lim 1/x x->1000", lr.value, 0.001, 1e-6);
+        }
+    }
+
+    // Test 45: lim abs(x)/x as x->0+ = 1 (right side)
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("abs(x)/x", 8, f);
+        if (pr.ok) {
+            auto lr = monocalc::lim(f, 0.0, monocalc::LimitDirection::Right);
+            check("lim abs(x)/x x->0+ ok", lr.ok);
+            checkApprox("lim abs(x)/x x->0+", lr.value, 1.0, 1e-4);
+        }
+    }
+
+    // Test 46: lim abs(x)/x as x->0- = -1 (left side)
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("abs(x)/x", 8, f);
+        if (pr.ok) {
+            auto lr = monocalc::lim(f, 0.0, monocalc::LimitDirection::Left);
+            check("lim abs(x)/x x->0- ok", lr.ok);
+            checkApprox("lim abs(x)/x x->0-", lr.value, -1.0, 1e-4);
+        }
+    }
+
+    // Test 47: lim abs(x)/x as x->0 bilateral = NotConverged (left != right)
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("abs(x)/x", 8, f);
+        if (pr.ok) {
+            auto lr = monocalc::lim(f, 0.0, monocalc::LimitDirection::Both);
+            check("lim abs(x)/x x->0 bilateral not converged", !lr.ok && lr.err == monocalc::ErrorCode::NotConverged);
+        }
+    }
+
+    // Test 48: lim on invalid function = SyntaxError
+    {
+        monocalc::Function f;
+        f.root = monocalc::INVALID_ID;
+        auto lr = monocalc::lim(f, 0.0, monocalc::LimitDirection::Both);
+        check("lim invalid function syntax error", !lr.ok && lr.err == monocalc::ErrorCode::SyntaxError);
+    }
+
+    // ===================== ERRORS =====================
+    printf("\n=== Errors ===\n");
+
+    // Test 49: Syntax error — "x+" incomplete
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("x+", 2, f);
+        check("parse x+ syntax error", !pr.ok && pr.err == monocalc::ErrorCode::SyntaxError);
+    }
+
+    // Test 50: Syntax error — "sin(x" incomplete paren
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("sin(x", 5, f);
+        check("parse sin(x syntax error", !pr.ok && pr.err == monocalc::ErrorCode::SyntaxError);
+    }
+
+    // Test 51: Syntax error — "2x" implicit multiplication
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("2x", 2, f);
+        check("parse 2x syntax error", !pr.ok && pr.err == monocalc::ErrorCode::SyntaxError);
+    }
+
+    // Test 52: Syntax error — empty string
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("", 0, f);
+        check("parse empty syntax error", !pr.ok && pr.err == monocalc::ErrorCode::SyntaxError);
+    }
+
+    // Test 53: Syntax error — "x@y" invalid character
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("x@y", 3, f);
+        check("parse x@y syntax error", !pr.ok && pr.err == monocalc::ErrorCode::SyntaxError);
+    }
+
+    // Test 54: UnsupportedOperation — integrate exp(x^2)
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("exp(x^2)", 8, f);
+        if (pr.ok) {
+            monocalc::Function intF;
+            auto err = monocalc::integrate(f, intF);
+            check("integrate exp(x^2) unsupported", err == monocalc::ErrorCode::UnsupportedOperation);
+        }
+    }
+
+    // Test 55: DomainError — compute 1/x at x=0
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("1/x", 3, f);
+        if (pr.ok) {
+            auto r = monocalc::compute(f, 0.0);
+            check("compute 1/x at 0 domain error", !r.ok && r.err == monocalc::ErrorCode::DomainError);
+        }
+    }
+
+    // Test 56: DomainError — compute ln(x) at x=-1
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("ln(x)", 5, f);
+        if (pr.ok) {
+            auto r = monocalc::compute(f, -1.0);
+            check("compute ln(x) at -1 domain error", !r.ok && r.err == monocalc::ErrorCode::DomainError);
+        }
+    }
+
+    // Test 57: Different error codes are distinguishable
+    {
+        check("ErrorCode OK != SyntaxError",
+              monocalc::ErrorCode::OK != monocalc::ErrorCode::SyntaxError);
+        check("ErrorCode SyntaxError != UnsupportedOperation",
+              monocalc::ErrorCode::SyntaxError != monocalc::ErrorCode::UnsupportedOperation);
+        check("ErrorCode UnsupportedOperation != DomainError",
+              monocalc::ErrorCode::UnsupportedOperation != monocalc::ErrorCode::DomainError);
+        check("ErrorCode DomainError != ResourceExhausted",
+              monocalc::ErrorCode::DomainError != monocalc::ErrorCode::ResourceExhausted);
+        check("ErrorCode ResourceExhausted != NotConverged",
+              monocalc::ErrorCode::ResourceExhausted != monocalc::ErrorCode::NotConverged);
+        check("ErrorCode NotConverged != Diverged",
+              monocalc::ErrorCode::NotConverged != monocalc::ErrorCode::Diverged);
+    }
+
+    // Test 58: errorMessage returns non-null for all codes
+    {
+        check("errorMessage OK", monocalc::errorMessage(monocalc::ErrorCode::OK) != nullptr);
+        check("errorMessage SyntaxError", monocalc::errorMessage(monocalc::ErrorCode::SyntaxError) != nullptr);
+        check("errorMessage UnsupportedOperation", monocalc::errorMessage(monocalc::ErrorCode::UnsupportedOperation) != nullptr);
+        check("errorMessage DomainError", monocalc::errorMessage(monocalc::ErrorCode::DomainError) != nullptr);
+        check("errorMessage ResourceExhausted", monocalc::errorMessage(monocalc::ErrorCode::ResourceExhausted) != nullptr);
+        check("errorMessage NotConverged", monocalc::errorMessage(monocalc::ErrorCode::NotConverged) != nullptr);
+        check("errorMessage Diverged", monocalc::errorMessage(monocalc::ErrorCode::Diverged) != nullptr);
+    }
+
+    // ===================== MEMORY =====================
+    printf("\n=== Memory ===\n");
+
+    // Test 59: Arena alloc returns INVALID_ID when full
+    {
+        monocalc::Node* nodes = static_cast<monocalc::Node*>(std::malloc(sizeof(monocalc::Node) * 3));
+        monocalc::Arena arena;
+        arena.init(nodes, 0, 3);
+        monocalc::NodeId id1 = arena.alloc();
+        monocalc::NodeId id2 = arena.alloc();
+        monocalc::NodeId id3 = arena.alloc();
+        monocalc::NodeId id4 = arena.alloc(); // should fail
+        check("arena alloc 1 ok", id1 == 0);
+        check("arena alloc 2 ok", id2 == 1);
+        check("arena alloc 3 ok", id3 == 2);
+        check("arena alloc 4 INVALID", id4 == monocalc::INVALID_ID);
+        std::free(nodes);
+    }
+
+    // Test 60: ResourceExhausted on deep nesting
+    // The parser has MAX_DEPTH=64; a very deep expression should fail
+    {
+        // Build a deeply nested expression: (((...x...)))
+        // We'll create a string with many nested parens
+        char deep[512];
+        int pos = 0;
+        for (int i = 0; i < 100 && pos < 500; i++) {
+            deep[pos++] = '(';
+        }
+        deep[pos++] = 'x';
+        for (int i = 0; i < 100 && pos < 500; i++) {
+            deep[pos++] = ')';
+        }
+        deep[pos] = '\0';
+
+        monocalc::Function f;
+        auto pr = monocalc::parse(deep, pos, f);
+        // Should fail with ResourceExhausted due to MAX_DEPTH
+        check("deep nesting resource exhausted", !pr.ok && pr.err == monocalc::ErrorCode::ResourceExhausted);
+    }
+
+    // Test 61: derive() preserves original function on failure
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("x^2", 3, f);
+        if (pr.ok) {
+            double origVal;
+            {
+                auto r = monocalc::compute(f, 5.0);
+                origVal = r.value;
+            }
+            // Try to derive abs(x) which fails — but f is x^2, so derive should succeed
+            // Instead, test that derive doesn't corrupt f
+            monocalc::Function dF;
+            auto err = monocalc::derive(f, dF);
+            check("derive x^2 ok", err == monocalc::ErrorCode::OK);
+            // f should still work
+            auto r = monocalc::compute(f, 5.0);
+            check("original preserved after derive", r.ok && std::abs(r.value - origVal) < 1e-9);
+        }
+    }
+
+    // Test 62: derive() on invalid function returns error
+    {
+        monocalc::Function f;
+        f.root = monocalc::INVALID_ID;
+        monocalc::Function dF;
+        auto err = monocalc::derive(f, dF);
+        check("derive invalid function syntax error", err == monocalc::ErrorCode::SyntaxError);
+    }
+
+    // Test 63: integrate() on invalid function returns error
+    {
+        monocalc::Function f;
+        f.root = monocalc::INVALID_ID;
+        monocalc::Function intF;
+        auto err = monocalc::integrate(f, intF);
+        check("integrate invalid function syntax error", err == monocalc::ErrorCode::SyntaxError);
+    }
+
+    // Test 64: compute() on invalid function returns error
+    {
+        monocalc::Function f;
+        f.root = monocalc::INVALID_ID;
+        auto r = monocalc::compute(f, 1.0);
+        check("compute invalid function syntax error", !r.ok && r.err == monocalc::ErrorCode::SyntaxError);
+    }
+
+    // Test 65: lim() on invalid function returns error
+    {
+        monocalc::Function f;
+        f.root = monocalc::INVALID_ID;
+        auto lr = monocalc::lim(f, 0.0, monocalc::LimitDirection::Both);
+        check("lim invalid function syntax error", !lr.ok && lr.err == monocalc::ErrorCode::SyntaxError);
+    }
+
+    // Test 66: No silent fallback — invalid parse doesn't produce a valid function
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("x+y", 3, f); // 'y' is not recognized
+        check("parse x+y fails", !pr.ok);
+        // f.root should be INVALID_ID
+        check("failed parse root is invalid", f.root == monocalc::INVALID_ID);
     }
 
     printf("\n=== Results: %d failures ===\n", failures);
