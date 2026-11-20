@@ -15,7 +15,10 @@ static void check(const char* name, bool cond) {
 }
 
 static void checkApprox(const char* name, double got, double expected, double tol) {
-    if (std::abs(got - expected) < tol) {
+    // Use looser tolerance for float builds
+    const double floatFactor = (sizeof(MONOCALC_REAL) < 8) ? 100.0 : 1.0;
+    double adjustedTol = tol * floatFactor;
+    if (std::abs(got - expected) < adjustedTol) {
         printf("  PASS: %s (got %.6f)\n", name, got);
     } else {
         printf("  FAIL: %s (expected %.6f, got %.6f)\n", name, expected, got);
@@ -902,6 +905,41 @@ int main() {
                 // d/dx(1/x) = -1/x^2, should still reject x=0
                 auto r0 = monocalc::compute(dF, 0.0);
                 check("d(1/x) at x=0 domain error", !r0.ok);
+            }
+        }
+    }
+
+    // Test 72b: Compound domain — derive(ln(x^2-4)) excludes x=-2 and x=2
+    // ln(x^2-4) requires x^2-4 > 0, i.e., |x| > 2
+    // d/dx(ln(x^2-4)) = 2*x/(x^2-4), which has singularities at x=-2 and x=2
+    {
+        monocalc::Function f;
+        auto pr = monocalc::parse("ln(x^2-4)", 9, f);
+        check("parse ln(x^2-4)", pr.ok);
+        if (pr.ok) {
+            // Original function: ln(x^2-4) should reject x=0 (x^2-4 = -4 < 0)
+            auto r0 = monocalc::compute(f, 0.0);
+            check("ln(x^2-4) at x=0 domain error", !r0.ok);
+            // Should accept x=3: ln(9-4) = ln(5)
+            auto r3 = monocalc::compute(f, 3.0);
+            check("ln(x^2-4) at x=3 ok", r3.ok);
+            checkApprox("ln(x^2-4) at x=3", r3.value, std::log(5.0), 1e-9);
+
+            // Derivative: d/dx(ln(x^2-4)) = 2*x/(x^2-4)
+            monocalc::Function dF;
+            auto err = monocalc::derive(f, dF);
+            check("derive ln(x^2-4) ok", err == monocalc::ErrorCode::OK);
+            if (err == monocalc::ErrorCode::OK) {
+                // At x=3: 2*3/(9-4) = 6/5 = 1.2
+                auto dr3 = monocalc::compute(dF, 3.0);
+                check("d(ln(x^2-4)) at x=3 ok", dr3.ok);
+                checkApprox("d(ln(x^2-4)) at x=3", dr3.value, 1.2, 1e-9);
+                // At x=2: singularity (division by zero)
+                auto dr2 = monocalc::compute(dF, 2.0);
+                check("d(ln(x^2-4)) at x=2 domain error", !dr2.ok);
+                // At x=-2: singularity
+                auto drn2 = monocalc::compute(dF, -2.0);
+                check("d(ln(x^2-4)) at x=-2 domain error", !drn2.ok);
             }
         }
     }

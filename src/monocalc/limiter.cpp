@@ -12,7 +12,8 @@ namespace monocalc {
 // divergence (monotonic growth), oscillation, or plateau from precision loss.
 static LimitResult limitOneSide(const Arena& arena, NodeId root, MONOCALC_REAL x0, bool fromLeft) {
     const int maxIter = 60;
-    const MONOCALC_REAL tol = 1e-8;
+    // Tolerance depends on precision: float ~1e-5, double ~1e-8
+    const MONOCALC_REAL tol = (sizeof(MONOCALC_REAL) < 8) ? 1e-5 : 1e-8;
 
     MONOCALC_REAL h = 1e-1;
     MONOCALC_REAL sign = fromLeft ? -1.0 : 1.0;
@@ -163,8 +164,9 @@ LimitResult limit(const Arena& arena, NodeId root, MONOCALC_REAL x0, LimitDirect
             }
 
             // Both converged — check they agree
+            MONOCALC_REAL agreeTol = (sizeof(MONOCALC_REAL) < 8) ? 1e-5 : 1e-8;
             MONOCALC_REAL diff = fabs(left.value - right.value);
-            if (diff < 1e-8 * fabs(left.value) || diff < 1e-8) {
+            if (diff < agreeTol * fabs(left.value) || diff < agreeTol) {
                 LimitResult lr;
                 lr.ok = true;
                 lr.value = (left.value + right.value) / 2.0;

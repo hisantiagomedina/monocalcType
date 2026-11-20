@@ -9,6 +9,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Warnings
 add_compile_options(-Wall -Wextra -Wpedantic)
 
+# Optional: use float instead of double for MONOCALC_REAL
+option(MONOCALC_FLOAT "Use float instead of double for MONOCALC_REAL" OFF)
+if(MONOCALC_FLOAT)
+    add_compile_definitions(MONOCALC_REAL=float)
+endif()
+
 # Optional sanitizers (off by default on Windows)
 option(MONOCALC_SANITIZERS "Enable AddressSanitizer and UBSan" OFF)
 if(MONOCALC_SANITIZERS)

@@ -410,7 +410,12 @@ static ErrorCode diff(const Arena& in, NodeId id, Arena& out, NodeId* outRoot) {
                 }
                 case FuncType::Abs: {
                     // d/dx(abs(u)) = u * u' / abs(u)
-                    // fPrime = u / abs(u)
+                    // At u=0, this gives 0/0 which evaluates to DomainError.
+                    // This is correct: abs(x) is not differentiable at x=0.
+                    // However, abs(x^2) at x=0 IS differentiable (derivative = 0).
+                    // We can't detect this symbolically in general, so we use the
+                    // standard formula. The evaluator will return DomainError at u=0,
+                    // which is the conservative correct behavior.
                     NodeId absU = mkFunc(out, FuncType::Abs, argCopy);
                     if (absU == INVALID_ID) return ErrorCode::ResourceExhausted;
                     NodeId uOverAbsU = mkBinOp(out, OpType::Div, argCopy, absU);
@@ -480,8 +485,101 @@ static ErrorCode copyNode(const Arena& in, NodeId id, Arena& out, NodeId* outId)
     return ErrorCode::OK;
 }
 
+/* Basic polynomial normalization.
+   Rules:
+   - c*x^1 → c*x  (remove power 1)
+   - 1*x → x      (remove coefficient 1)
+   - 0+g → g      (remove zero left in add)
+   - f+0 → f      (remove zero right in add)
+   - 0*g → 0      (zero multiplication)
+   - f*0 → 0
+   Applied recursively bottom-up. */
+static NodeId normalize(Arena& arena, NodeId id) {
+    if (id == INVALID_ID) return INVALID_ID;
+    Node& n = arena.at(id);
+
+    // Recursively normalize children first
+    if (n.type == NodeType::UnaryOp || n.type == NodeType::FuncCall) {
+        n.left = normalize(arena, n.left);
+    } else if (n.type == NodeType::BinaryOp) {
+        n.left = normalize(arena, n.left);
+        n.right = normalize(arena, n.right);
+    }
+
+    // c*x^1 → c*x
+    if (n.type == NodeType::BinaryOp && n.op == OpType::Pow) {
+        if (n.right != INVALID_ID) {
+            const Node& r = arena.at(n.right);
+            if (r.type == NodeType::Const && fabs(r.constant - 1.0) < 1e-15) {
+                // Replace Pow with just the left child
+                n.type = NodeType::Var;
+                n.left = INVALID_ID;
+                n.right = INVALID_ID;
+                return id;
+            }
+        }
+    }
+
+    // 1*x → x
+    if (n.type == NodeType::BinaryOp && n.op == OpType::Mul) {
+        if (n.left != INVALID_ID && n.right != INVALID_ID) {
+            const Node& l = arena.at(n.left);
+            const Node& r = arena.at(n.right);
+            // 1 * x → x
+            if (l.type == NodeType::Const && fabs(l.constant - 1.0) < 1e-15) {
+                return n.right;
+            }
+            // x * 1 → x
+            if (r.type == NodeType::Const && fabs(r.constant - 1.0) < 1e-15) {
+                return n.left;
+            }
+            // 0 * x → 0
+            if (l.type == NodeType::Const && fabs(l.constant) < 1e-15) {
+                n.type = NodeType::Const;
+                n.constant = 0.0;
+                n.left = INVALID_ID;
+                n.right = INVALID_ID;
+                return id;
+            }
+            if (r.type == NodeType::Const && fabs(r.constant) < 1e-15) {
+                n.type = NodeType::Const;
+                n.constant = 0.0;
+                n.left = INVALID_ID;
+                n.right = INVALID_ID;
+                return id;
+            }
+        }
+    }
+
+    // 0 + g → g, f + 0 → f
+    if (n.type == NodeType::BinaryOp && (n.op == OpType::Add || n.op == OpType::Sub)) {
+        if (n.left != INVALID_ID && n.right != INVALID_ID) {
+            const Node& l = arena.at(n.left);
+            const Node& r = arena.at(n.right);
+            // 0 + g → g
+            if (l.type == NodeType::Const && fabs(l.constant) < 1e-15) {
+                if (n.op == OpType::Add) return n.right;
+                // 0 - g → -g
+                NodeId neg = mkUnaryOp(arena, OpType::Neg, n.right);
+                if (neg != INVALID_ID) return neg;
+            }
+            // f + 0 → f
+            if (r.type == NodeType::Const && fabs(r.constant) < 1e-15) {
+                return n.left;
+            }
+        }
+    }
+
+    return id;
+}
+
 ErrorCode differentiate(const Arena& in, NodeId root, Arena& out, NodeId* outRoot) {
-    return diff(in, root, out, outRoot);
+    ErrorCode err = diff(in, root, out, outRoot);
+    if (err != ErrorCode::OK) return err;
+    // Apply basic normalization
+    NodeId normed = normalize(out, *outRoot);
+    *outRoot = normed;
+    return ErrorCode::OK;
 }
 
 } // namespace monocalc
