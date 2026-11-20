@@ -1,8 +1,8 @@
 #ifndef MONOCALC_EVALUATOR_H
 #define MONOCALC_EVALUATOR_H
 
-#include "ast.h"
-#include "error.h"
+#include "monocalc/ast.h"
+#include "monocalc/error.h"
 
 namespace monocalc {
 

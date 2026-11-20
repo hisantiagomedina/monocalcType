@@ -1,8 +1,8 @@
 #ifndef MONOCALC_DIFFERENTIATOR_H
 #define MONOCALC_DIFFERENTIATOR_H
 
-#include "ast.h"
-#include "error.h"
+#include "monocalc/ast.h"
+#include "monocalc/error.h"
 
 namespace monocalc {
 

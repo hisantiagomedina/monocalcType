@@ -377,8 +377,8 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | Stage 3 | ✓ Completado | Evaluador numérico + API pública parse(), compute() |
 | Stage 4 | ✓ Completado | Derivación simbólica completa (constante, potencia, linealidad, producto, cociente, cadena) |
 | Stage 5 | ✓ Completado | Integración simbólica completa + propagación de dominios |
-| Stage 6 | ✗ Pendiente | Límites, errores distinguibles y control de memoria |
-| Stage 7 | ✗ Pendiente | Ejemplo Arduino, validación final y reporte |
+| Stage 6 | ✓ Completado | Límites numéricos, errores distinguibles, control de memoria |
+| Stage 7 | ✓ Completado | Arduino AVR compilado, estructura compartida CMake/Arduino |
 
 ### Requisitos TXT (entrada textual)
 
@@ -462,7 +462,7 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | STACK-T-001 | C++11 | ✓ Implementado | `CMAKE_CXX_STANDARD 11`, `CMAKE_CXX_EXTENSIONS OFF` |
 | STACK-T-002 | CMake con GCC/Clang | ⚠ Parcial | GCC ✓ compilado y probado. Clang ✗ no verificado aún. |
 | STACK-T-003 | CTest | ✓ Implementado | `test_compile` registrado y ejecutado |
-| STACK-T-004 | Arduino CLI | ✓ Implementado | `examples/Basic/Basic.ino` compilado para Arduino Uno (21184 bytes Flash, 274 bytes SRAM). Comando: `arduino-cli compile --fqbn arduino:avr:uno examples/Basic` |
+| STACK-T-004 | Arduino CLI | ✓ Implementado | `examples/Basic/Basic.ino` compilado para Arduino Uno (21184 bytes Flash, 274 bytes SRAM). Comando: `arduino-cli compile --fqbn arduino:avr:uno --library . examples/Basic`. CMake y Arduino comparten `src/monocalc/`. |
 | STACK-T-005 | Sanitizadores | ⚠ Parcial | Opción `MONOCALC_SANITIZERS` en CMake, desactivada por defecto. No verificada. |
 | STACK-T-006 | Informes JUnit/Markdown | ✗ Pendiente | No generados |
 | STACK-T-007 | Automatización para Junie | ✓ Implementado | Comandos documentados en plan |
@@ -518,7 +518,7 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | TY-CA-041 | CTest prueba fallida | ✗ Pendiente | No verificado |
 | TY-CA-042 | Informes JUnit/Markdown | ✗ Pendiente | No generados |
 | TY-CA-043 | ASan/UBSan compatible | ✗ Pendiente | No ejecutada |
-| TY-CA-044 | Arduino UNO CLI | ✓ PASSED | Compilación exitosa: 21184 bytes Flash (65%), 274 bytes SRAM (13%). Comando: `arduino-cli compile --fqbn arduino:avr:uno examples/Basic` |
+| TY-CA-044 | Arduino UNO CLI | ✓ PASSED | Compilación exitosa: 21184 bytes Flash (65%), 274 bytes SRAM (13%). Comando: `arduino-cli compile --fqbn arduino:avr:uno --library . examples/Basic`. Archivos compartidos con CMake. |
 | TY-CA-045 | ESP32 CLI | ✗ Pendiente | Sin sketch |
 | TY-CA-046 | Git historial | ✓ PASSED | Commits registrados |
 
@@ -529,7 +529,7 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 - **TY-CA pendientes:** 14/46 (✗ Pendiente — no implementados)
 - **Pruebas unitarias:** 125/125 PASSED en `test_compile` (GCC 16.2.0)
 - **Compiladores verificados:** GCC 16.2.0 ✓, Clang ✗
-- **Arduino AVR:** ✓ Compilado (Uno) — 21184 bytes Flash (65%), 274 bytes SRAM (13%). Comando: `arduino-cli compile --fqbn arduino:avr:uno examples/Basic`
+- **Arduino AVR:** ✓ Compilado (Uno) — 21184 bytes Flash (65%), 274 bytes SRAM (13%). Comando: `arduino-cli compile --fqbn arduino:avr:uno --library . examples/Basic`. CMake y Arduino comparten `src/monocalc/`.
 - **Portabilidad:** Headers C en .cpp, `#if defined(__AVR__)` para `size_t`, funciones C en lugar de `std::`
 - **Sanitizadores:** ✗ No ejecutados
 
@@ -537,33 +537,33 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 
 | Archivo | Líneas | Estado |
 |---|---|---|
-| `include/monocalc/error.h` | 34 | ✓ Completo |
-| `include/monocalc/token.h` | 33 | ✓ Completo |
-| `include/monocalc/lexer.h` | 24 | ✓ Completo |
-| `include/monocalc/parser.h` | 16 | ✓ Completo |
-| `include/monocalc/ast.h` | 53 | ✓ Completo |
-| `include/monocalc/evaluator.h` | 21 | ✓ Completo |
-| `include/monocalc/differentiator.h` | 14 | ✓ Completo |
-| `include/monocalc/integrator.h` | 14 | ✓ Completo |
-| `include/monocalc/domain.h` | 30 | ⚠ Básico |
-| `include/monocalc/limiter.h` | 31 | ✓ Completo |
-| `include/monocalc/type.h` | 43 | ✓ Completo |
-| `src/lexer.cpp` | 145 | ✓ Completo |
-| `src/parser.cpp` | 250 | ✓ Completo |
-| `src/ast.cpp` | 9 | ✓ Mínimo |
-| `src/evaluator.cpp` | 87 | ✓ Completo |
-| `src/differentiator.cpp` | 487 | ✓ Completo — incluye d/dx(ln(abs(x))) y d/dx(ln(abs(ax+b))) |
-| `src/integrator.cpp` | 656 | ✓ Completo |
-| `src/domain.cpp` | 26 | ⚠ Básico — domainCheck usa excludedPoint correctamente |
-| `src/limiter.cpp` | 127 | ✓ Completo — límites numéricos laterales y bilaterales |
-| `src/type.cpp` | 171 | ✓ Completo |
+| `src/monocalc/error.h` | 34 | ✓ Completo |
+| `src/monocalc/token.h` | 33 | ✓ Completo |
+| `src/monocalc/lexer.h` | 24 | ✓ Completo |
+| `src/monocalc/parser.h` | 16 | ✓ Completo |
+| `src/monocalc/ast.h` | 53 | ✓ Completo |
+| `src/monocalc/evaluator.h` | 21 | ✓ Completo |
+| `src/monocalc/differentiator.h` | 14 | ✓ Completo |
+| `src/monocalc/integrator.h` | 14 | ✓ Completo |
+| `src/monocalc/domain.h` | 30 | ⚠ Básico |
+| `src/monocalc/limiter.h` | 31 | ✓ Completo |
+| `src/monocalc/type.h` | 43 | ✓ Completo |
+| `src/type.h` | 8 | ✓ Wrapper mínimo para Arduino (`#include "monocalc/type.h"`) |
+| `src/monocalc/lexer.cpp` | 145 | ✓ Completo |
+| `src/monocalc/parser.cpp` | 250 | ✓ Completo |
+| `src/monocalc/ast.cpp` | 9 | ✓ Mínimo |
+| `src/monocalc/evaluator.cpp` | 87 | ✓ Completo |
+| `src/monocalc/differentiator.cpp` | 487 | ✓ Completo — incluye d/dx(ln(abs(x))) y d/dx(ln(abs(ax+b))) |
+| `src/monocalc/integrator.cpp` | 656 | ✓ Completo |
+| `src/monocalc/domain.cpp` | 26 | ⚠ Básico — domainCheck usa excludedPoint correctamente |
+| `src/monocalc/limiter.cpp` | 127 | ✓ Completo — límites numéricos laterales y bilaterales |
+| `src/monocalc/type.cpp` | 171 | ✓ Completo |
 | `tests/test_compile.cpp` | 884 | ✓ 125 pruebas |
 | `CMakeLists.txt` | 43 | ✓ Completo |
 | `tests/CMakeLists.txt` | 5 | ✓ Completo |
 | `.gitignore` | 21 | ✓ Completo |
-| `examples/Basic/Basic.ino` | 120 | ✓ Sketch creado |
+| `examples/Basic/Basic.ino` | 90 | ✓ Solo sketch, sin duplicación de archivos |
 | `library.properties` | 8 | ✓ Metadata creada |
-| `examples/Basic/` | — | ⚠ Sketch creado, compilación AVR falló (toolchain incompleto) |
 
 ### Limitaciones conocidas
 
@@ -572,7 +572,7 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 3. **Sin simplificación activa:** No hay normalización polinómica ni cancelación de términos.
 4. **Pruebas consolidadas en un solo archivo:** `test_compile.cpp` agrupa todas las pruebas; faltan archivos separados.
 5. **Clang no verificado:** Solo GCC 16.2.0 ha sido probado.
-6. **Arduino no compilado:** `Basic.ino` y `library.properties` creados, pero el toolchain AVR GCC (7.3.0-atmel3.6.1-arduino7) está incompleto: falta `cstddef` y cabeceras C++ estándar. Se requiere reinstalar `avr-gcc` con soporte C++.
+6. **`src/type.h` wrapper:** Archivo mínimo (8 líneas) que incluye `monocalc/type.h`. Se requiere para que Arduino CLI descubra la biblioteca. CMake no lo compila directamente.
 7. **Límites numéricos:** La aproximación puede fallar en casos patológicos; no es un cálculo simbólico de límites.
 
 ## 12. Historial del documento
@@ -583,5 +583,6 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | Borrador 0.2 | Arquitectura aprobada para Type: parser Pratt, AST compacto, reglas simbólicas conservadoras, memoria y dominios explícitos; 24 requisitos ARC y 12 nuevas pruebas TY-CA-026–037; plan de trabajo de Junie actualizado sin alterar el contrato común 0.3 |
 | **Borrador 0.3** | Stack de desarrollo aprobado: C++11, CMake, CTest, Arduino CLI, ASan/UBSan, informes JUnit XML y Markdown, Git; 11 requisitos STACK-T y nueve criterios TY-CA-038–046; GitHub Actions opcional/futuro; trazabilidad y entregables actualizados |
 | **Borrador 0.4** | Sección 11 añadida: estado de implementación real con matrices de trazabilidad por requisito (TXT, MAT, ARC, ERR, PORT, STACK, TY-CA), archivos implementados, limitaciones conocidas y resumen numérico. Fecha: 2026-11-20. |
+| **Borrador 0.5** | Reorganización de estructura: `include/monocalc/` eliminado, todo en `src/monocalc/`. CMake y Arduino CLI comparten los mismos archivos. `src/type.h` es un wrapper mínimo (8 líneas) para Arduino. `examples/Basic/` contiene solo `Basic.ino`. Fecha: 2026-11-20. |
 
-**Fin — SDD particular monocalc Type 0.1.0, Borrador 0.4.**
+**Fin — SDD particular monocalc Type 0.1.0, Borrador 0.5.**

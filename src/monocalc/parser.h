@@ -1,9 +1,9 @@
 #ifndef MONOCALC_PARSER_H
 #define MONOCALC_PARSER_H
 
-#include "token.h"
-#include "ast.h"
-#include "error.h"
+#include "monocalc/token.h"
+#include "monocalc/ast.h"
+#include "monocalc/error.h"
 
 namespace monocalc {
 

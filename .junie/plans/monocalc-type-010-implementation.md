@@ -358,11 +358,12 @@ Implementar estimación de límites, categorías de error y control de memoria.
 
 ### ✓ Step 7: Stage 7: Ejemplo Arduino, validación final y reporte
 Preparar el sketch Arduino, validar compilación para AVR y generar informe final.
-- `examples/Basic/Basic.ino`: ✓ sketch actualizado (90 líneas, compatible AVR)
-- Headers y fuentes en `examples/Basic/`: ✓ copiados para compilación directa (Arduino CLI no soporta `--library` con estructura include/src)
-- `library.properties`: ✓ metadata actualizada (`includes=type.h`)
+- `examples/Basic/Basic.ino`: ✓ sketch (90 líneas, compatible AVR), sin duplicación de archivos
+- **Estructura compartida:** CMake y Arduino CLI usan los mismos archivos en `src/monocalc/`
+- `src/type.h`: ✓ entry point para Arduino CLI (copia de `src/monocalc/type.h`)
+- `library.properties`: ✓ metadata (`includes=type.h`)
 - Compilación AVR: ✓ Exitosa — 21184 bytes Flash (65%), 274 bytes SRAM (13%)
-- Comando verificado: `arduino-cli compile --fqbn arduino:avr:uno examples/Basic`
+- Comando verificado: `arduino-cli compile --fqbn arduino:avr:uno --library . examples/Basic`
 - Headers portables: `#if defined(__AVR__)` para `size_t`, headers C en .cpp
 - Clang: ⚠ No verificado (pendiente)
 - Informes JUnit/Markdown: ⚠ No generados (pendiente)

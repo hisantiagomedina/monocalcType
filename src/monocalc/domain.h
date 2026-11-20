@@ -1,7 +1,7 @@
 #ifndef MONOCALC_DOMAIN_H
 #define MONOCALC_DOMAIN_H
 
-#include "error.h"
+#include "monocalc/error.h"
 
 #ifndef MONOCALC_REAL
 #define MONOCALC_REAL double

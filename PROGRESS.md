@@ -5,8 +5,9 @@
 ### ✓ Stage 1: CMake, estructura y .gitignore
 - CMakeLists.txt con C++11, -Wall -Wextra -Wpedantic, sanitizers opcionales
 - .gitignore para build/, *.xml, .codelite/
-- Directorios: include/monocalc/, src/, tests/, examples/Basic/
+- Directorios: src/monocalc/, tests/, examples/Basic/
 - Cabeceras: error.h, token.h, ast.h, lexer.h, parser.h, evaluator.h, differentiator.h, integrator.h, domain.h, limiter.h, type.h
+- **Estructura compartida:** `src/monocalc/` contiene todos los headers (.h) y fuentes (.cpp). `src/type.h` es un **wrapper mínimo** (`#include "monocalc/type.h"`) para Arduino CLI. CMake y Arduino comparten los mismos archivos.
 
 ### ✓ Stage 2: Lexer y Parser Pratt
 - Lexer: números (incl. notación científica 1e-3), variable x, operadores, paréntesis, funciones sin/cos/exp/ln/abs
@@ -81,8 +82,8 @@
 - Compilación GCC 16.2.0: ✓ exitosa sin warnings
 - Pruebas test_compile: **125/125 PASSED**
 - Arduino AVR (Uno): ✓ compilación exitosa — 21184 bytes Flash (65%), 274 bytes SRAM (13%)
-- Comando: `arduino-cli compile --fqbn arduino:avr:uno examples/Basic`
-- Estructura: headers y fuentes en `examples/Basic/` junto con `Basic.ino` (Arduino CLI no soporta `--library` con estructura include/src)
+- Comando Arduino: `arduino-cli compile --fqbn arduino:avr:uno --library . examples/Basic`
+- **Estructura compartida:** CMake y Arduino CLI usan los mismos archivos en `src/monocalc/`. `src/type.h` es un wrapper mínimo (8 líneas) para Arduino. `examples/Basic/` contiene solo `Basic.ino`.
 - Clang: pendiente
 - Bug corregido: domainCheck(NotZero) usaba x=0 hardcodeado; ahora usa excludedPoint
 - Bug corregido: d/dx(ln(abs(ax+b))) detectado antes de la regla de cadena genérica
@@ -103,4 +104,11 @@
 - **Portabilidad AVR:** `#if defined(__AVR__)` para `size_t` en headers; headers C (`<math.h>`, `<stdlib.h>`, `<string.h>`, `<ctype.h>`, `<float.h>`) en .cpp; funciones C (`fabs`, `sin`, `cos`, `exp`, `log`, `pow`, `isnan`, `isinf`, `strtod`, `malloc`, `free`) en lugar de `std::` equivalents
 
 ## Próximo Milestone
-**Stage 7 completado.** Arduino AVR compilado con éxito. Pendiente: verificación con Clang y generación de informes JUnit XML / Markdown.
+**Stage 7 completado.** Arduino AVR compilado con éxito. CMake y Arduino comparten `src/monocalc/`. Pendiente: verificación con Clang y generación de informes JUnit XML / Markdown.
+
+## Reorganización de Estructura
+- **Antes:** Headers en `include/monocalc/`, fuentes en `src/`, copias duplicadas en `examples/Basic/`
+- **Ahora:** Todo en `src/monocalc/` (headers + fuentes). `src/type.h` es un **wrapper mínimo** que solo incluye `monocalc/type.h`.
+- **CMake:** `target_include_directories(monocalc PUBLIC ${CMAKE_SOURCE_DIR}/src)` — resuelve `#include "monocalc/X.h"` como `src/monocalc/X.h`
+- **Arduino CLI:** `--library .` desde la raíz del repositorio — `src/type.h` activa el library discovery, luego `src/monocalc/` proporciona los headers internos
+- **examples/Basic/:** Solo `Basic.ino`, sin duplicación de archivos

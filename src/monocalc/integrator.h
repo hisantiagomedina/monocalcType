@@ -1,9 +1,9 @@
 #ifndef MONOCALC_INTEGRATOR_H
 #define MONOCALC_INTEGRATOR_H
 
-#include "ast.h"
-#include "error.h"
-#include "domain.h"
+#include "monocalc/ast.h"
+#include "monocalc/error.h"
+#include "monocalc/domain.h"
 
 namespace monocalc {
 

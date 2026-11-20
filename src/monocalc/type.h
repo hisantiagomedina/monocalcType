@@ -1,11 +1,11 @@
 #ifndef MONOCALC_TYPE_H
 #define MONOCALC_TYPE_H
 
-#include "error.h"
-#include "ast.h"
-#include "evaluator.h"
-#include "domain.h"
-#include "limiter.h"
+#include "monocalc/error.h"
+#include "monocalc/ast.h"
+#include "monocalc/evaluator.h"
+#include "monocalc/domain.h"
+#include "monocalc/limiter.h"
 
 #ifndef MONOCALC_REAL
 #define MONOCALC_REAL double

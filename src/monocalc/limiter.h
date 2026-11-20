@@ -1,9 +1,9 @@
 #ifndef MONOCALC_LIMITER_H
 #define MONOCALC_LIMITER_H
 
-#include "ast.h"
-#include "error.h"
-#include "evaluator.h"
+#include "monocalc/ast.h"
+#include "monocalc/error.h"
+#include "monocalc/evaluator.h"
 
 #ifndef MONOCALC_REAL
 #define MONOCALC_REAL double

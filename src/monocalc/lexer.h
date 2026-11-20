@@ -1,8 +1,8 @@
 #ifndef MONOCALC_LEXER_H
 #define MONOCALC_LEXER_H
 
-#include "token.h"
-#include "error.h"
+#include "monocalc/token.h"
+#include "monocalc/error.h"
 
 namespace monocalc {
 

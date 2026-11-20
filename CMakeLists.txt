@@ -23,19 +23,19 @@ endif()
 
 # Library sources
 set(MONOCALC_SOURCES
-    src/lexer.cpp
-    src/parser.cpp
-    src/ast.cpp
-    src/evaluator.cpp
-    src/differentiator.cpp
-    src/integrator.cpp
-    src/domain.cpp
-    src/limiter.cpp
-    src/type.cpp
+    src/monocalc/lexer.cpp
+    src/monocalc/parser.cpp
+    src/monocalc/ast.cpp
+    src/monocalc/evaluator.cpp
+    src/monocalc/differentiator.cpp
+    src/monocalc/integrator.cpp
+    src/monocalc/domain.cpp
+    src/monocalc/limiter.cpp
+    src/monocalc/type.cpp
 )
 
 add_library(monocalc STATIC ${MONOCALC_SOURCES})
-target_include_directories(monocalc PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(monocalc PUBLIC ${CMAKE_SOURCE_DIR}/src)
 
 # Tests
 enable_testing()
