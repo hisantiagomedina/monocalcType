@@ -1,0 +1,214 @@
+# Development Environment — monocalcType v0.1.0
+
+Antes de comenzar la implementación, lee completamente `specifications.md`. Este documento constituye la fuente de verdad respecto a los requisitos funcionales, restricciones, arquitectura y comportamiento esperado de monocalcType.
+
+Las siguientes instrucciones complementan las especificaciones y definen el entorno de desarrollo, compilación, pruebas y validación que debes utilizar.
+
+## 1. Entorno de desarrollo disponible
+
+El proyecto se desarrolla sobre Windows x86-64 con MSYS2 UCRT64.
+
+Las siguientes herramientas ya están instaladas:
+
+| Herramienta | Versión |
+|---|---|
+| GCC / G++ | 16.2.0 |
+| Clang / Clang++ | 23.1.5 |
+| CMake | 4.5.0 |
+| CTest | 4.5.0 |
+| Ninja | 1.13.2 |
+| Arduino CLI | 1.6.0 |
+| Arduino AVR Boards | 1.8.8 |
+
+La compatibilidad de GCC con C++11 ya fue verificada mediante compilación y ejecución.
+
+Las herramientas están ubicadas en:
+
+- `C:\msys64\ucrt64\bin`
+- `C:\msys64\home\hoover\bin`
+
+El repositorio se encuentra en:
+
+`C:\Users\hoover\Documents\dev\monocalcType\monocalcType`
+
+Las herramientas pueden ejecutarse desde MSYS2 UCRT64 y desde PowerShell cuando las rutas anteriores están incluidas en el PATH.
+
+Antes de implementar, verifica que puedas invocarlas desde tu terminal. No reinstales herramientas existentes ni modifiques permanentemente las variables de entorno sin autorización.
+
+## 2. Estándar de C++
+
+Utiliza estrictamente C++11 para el código de la biblioteca.
+
+- No utilices características introducidas en C++14, C++17, C++20 o versiones posteriores.
+- Prioriza la portabilidad entre equipos de escritorio y microcontroladores Arduino.
+- Respeta las restricciones de memoria, dependencias y diseño establecidas en `specifications.md`.
+- Evita dependencias externas innecesarias.
+- Mantén el código independiente de la plataforma siempre que sea posible.
+
+Configura CMake para exigir C++11 y deshabilitar extensiones no estándar.
+
+## 3. Sistema de compilación nativa
+
+Utiliza:
+
+- CMake como sistema de configuración y construcción.
+- Ninja como generador de compilación.
+- GCC/G++ como compilador principal.
+- Clang como compilador secundario para comprobaciones adicionales.
+
+Crea los archivos `CMakeLists.txt` necesarios para construir la biblioteca y sus pruebas.
+
+La compilación debe poder realizarse mediante comandos equivalentes a:
+
+```bash
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+```
+
+Mantén los artefactos de compilación separados del código fuente.
+
+Habilita advertencias del compilador mediante `-Wall`, `-Wextra` y `-Wpedantic` cuando corresponda.
+
+## 4. Pruebas unitarias
+
+Utiliza CTest junto con ejecutables de prueba propios escritos en C++11.
+
+No introduzcas Google Test, Catch2 u otros frameworks externos salvo que exista una justificación técnica imprescindible.
+
+Las pruebas deben:
+
+- Ser independientes y deterministas.
+- Validar los requisitos descritos en `specifications.md`.
+- Comprobar entradas normales, casos límite y condiciones de error.
+- Retornar códigos de salida apropiados.
+- Poder ejecutarse automáticamente desde la terminal.
+- Proporcionar información útil cuando una prueba falla.
+
+Registra las pruebas mediante CMake y CTest.
+
+El comando principal de ejecución será:
+
+```bash
+ctest --test-dir build --output-on-failure
+```
+
+No consideres una funcionalidad terminada hasta que sus pruebas correspondientes hayan sido implementadas y ejecutadas satisfactoriamente.
+
+## 5. Compatibilidad con Arduino
+
+Utiliza Arduino CLI para verificar que la biblioteca puede compilarse para microcontroladores AVR.
+
+La plataforma `arduino:avr` ya está instalada.
+
+Utiliza inicialmente Arduino Uno como plataforma de referencia:
+
+`arduino:avr:uno`
+
+Crea los sketches mínimos necesarios para validar la integración de la biblioteca con Arduino.
+
+Utiliza comandos equivalentes a:
+
+```bash
+arduino-cli compile --fqbn arduino:avr:uno --library . examples/Basic
+```
+
+Adapta las rutas de acuerdo con la estructura definitiva del proyecto.
+
+La compilación nativa satisfactoria no garantiza la compatibilidad con Arduino. Ambas deben verificarse independientemente.
+
+Registra el consumo de memoria Flash y SRAM reportado por Arduino CLI cuando resulte relevante.
+
+No intentes cargar firmware en una placa física sin autorización.
+
+## 6. Diagnóstico y sanitizers
+
+AddressSanitizer (ASan) y UndefinedBehaviorSanitizer (UBSan) forman parte de la estrategia de diagnóstico del proyecto.
+
+Sin embargo, los runtimes correspondientes no están disponibles actualmente en las instalaciones locales de GCC y Clang bajo MSYS2 UCRT64.
+
+Por lo tanto:
+
+- No habilites los sanitizers por defecto en Windows.
+- No bloquees la implementación por su ausencia.
+- No intentes reinstalar GCC, Clang o sus runtimes automáticamente.
+- Prepara una opción de CMake para habilitar los sanitizers en entornos compatibles, desactivada por defecto.
+- Comprueba la disponibilidad de las opciones de compilación y enlazado antes de habilitarlas.
+
+En el futuro, estas pruebas podrán ejecutarse mediante Linux, WSL2 o GitHub Actions.
+
+Mientras tanto, prioriza las advertencias del compilador, la revisión de código y las pruebas de casos límite.
+
+## 7. Informes de pruebas
+
+Genera informes de pruebas en dos formatos:
+
+### JUnit XML
+
+Utiliza la funcionalidad nativa de CTest:
+
+```bash
+ctest --test-dir build --output-on-failure --output-junit junit.xml
+```
+
+### Markdown
+
+Genera un resumen legible para humanos y agentes de inteligencia artificial que incluya:
+
+- Estado de compilación nativa.
+- Estado de compilación para Arduino.
+- Número de pruebas ejecutadas.
+- Número de pruebas exitosas y fallidas.
+- Errores encontrados.
+- Advertencias relevantes.
+- Estado de los sanitizers.
+- Requisitos pendientes de implementación o validación.
+
+Los informes deben reflejar resultados reales. Diferencia explícitamente entre pruebas exitosas, fallidas, omitidas y no ejecutadas.
+
+No introduzcas dependencias externas únicamente para generar estos informes.
+
+## 8. Control de versiones
+
+El repositorio Git ya está inicializado.
+
+- Conserva el historial existente.
+- No elimines ni sobrescribas `specifications.md`.
+- No modifiques archivos ajenos a la implementación sin justificación.
+- Configura `.gitignore` para excluir artefactos de compilación, ejecutables temporales y archivos locales generados por el IDE.
+- No realices operaciones destructivas sobre Git.
+- No ejecutes `git push` sin autorización.
+
+GitHub Actions queda fuera del alcance obligatorio de la versión 0.1.0.
+
+## 9. Metodología de implementación
+
+Trabaja de manera incremental, siguiendo este ciclo:
+
+1. Analizar los requisitos correspondientes.
+2. Implementar una unidad funcional pequeña.
+3. Implementar sus pruebas.
+4. Compilar.
+5. Ejecutar las pruebas.
+6. Corregir los errores encontrados.
+7. Continuar con la siguiente unidad funcional.
+
+Utiliza los resultados de las herramientas para verificar tu trabajo, en lugar de asumir que el código funciona.
+
+Evita implementar funcionalidades fuera del alcance definido para la versión 0.1.0.
+
+No modifiques las especificaciones para acomodarlas a una implementación incorrecta.
+
+## 10. Instrucción inicial
+
+Antes de escribir código:
+
+1. Lee completamente `specifications.md`.
+2. Inspecciona la estructura actual del repositorio.
+3. Verifica la disponibilidad de las herramientas instaladas.
+4. Identifica los requisitos y criterios de aceptación de la versión 0.1.0.
+5. Propón la estructura de archivos y un plan de implementación incremental.
+6. Identifica contradicciones, ambigüedades o impedimentos técnicos.
+
+Una vez establecido el plan, procede con la implementación y validación de monocalcType v0.1.0.
+
+Prioriza la corrección, portabilidad, simplicidad, mantenibilidad y cumplimiento de las especificaciones por encima de incorporar funcionalidades adicionales.

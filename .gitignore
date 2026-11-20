@@ -1,0 +1,20 @@
+# Build artifacts
+build/
+build-gcc/
+build-clang/
+
+# IDE artifacts
+*.xml
+*.sln
+*.vcxproj
+*.code-workspace
+.codelite/
+
+# Test reports
+junit.xml
+test-report.md
+
+# OS artifacts
+Thumbs.db
+*.swp
+*.swo
