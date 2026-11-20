@@ -141,13 +141,21 @@ ErrorCode integrate(const Function& f, Function& out) {
     out.arena.init(nodes, 0, DEFAULT_ARENA_CAPACITY);
 
     NodeId root;
-    ErrorCode err = integrate(f.arena, f.root, out.arena, &root);
+    Domain d;
+    ErrorCode err = integrateAst(f.arena, f.root, out.arena, &root, &d);
     if (err != ErrorCode::OK) {
         std::free(nodes);
         out.arena.init(nullptr, 0, 0);
         return err;
     }
     out.root = root;
+    // Merge domain: integration may add constraints
+    if (d.type != DomainType::All) {
+        out.domain = d;
+    } else {
+        // Inherit original domain if integration doesn't add constraints
+        out.domain = f.domain;
+    }
     return ErrorCode::OK;
 }
 

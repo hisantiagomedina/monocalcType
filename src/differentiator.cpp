@@ -5,7 +5,43 @@
 
 namespace monocalc {
 
-// Forward declarations
+// Helper: check if a node represents an affine expression a*x + b
+static bool isAffineDiff(const Arena& in, NodeId id, MONOCALC_REAL* aCoeff, MONOCALC_REAL* bConst) {
+    if (id == INVALID_ID) return false;
+    const Node& nd = in.at(id);
+    switch (nd.type) {
+        case NodeType::Var:
+            *aCoeff = 1.0; *bConst = 0.0; return true;
+        case NodeType::Const:
+            *aCoeff = 0.0; *bConst = nd.constant; return true;
+        case NodeType::BinaryOp:
+            if (nd.op == OpType::Add || nd.op == OpType::Sub) {
+                MONOCALC_REAL la, lb, ra, rb;
+                if (isAffineDiff(in, nd.left, &la, &lb) && isAffineDiff(in, nd.right, &ra, &rb)) {
+                    if (nd.op == OpType::Add) { *aCoeff = la + ra; *bConst = lb + rb; }
+                    else { *aCoeff = la - ra; *bConst = lb - rb; }
+                    return true;
+                }
+            }
+            if (nd.op == OpType::Mul) {
+                if (nd.left != INVALID_ID && nd.right != INVALID_ID) {
+                    const Node& lnd = in.at(nd.left);
+                    const Node& rnd = in.at(nd.right);
+                    if (lnd.type == NodeType::Const && rnd.type == NodeType::Var) {
+                        *aCoeff = lnd.constant; *bConst = 0.0; return true;
+                    }
+                    if (rnd.type == NodeType::Const && lnd.type == NodeType::Var) {
+                        *aCoeff = rnd.constant; *bConst = 0.0; return true;
+                    }
+                }
+            }
+            break;
+        default:
+            break;
+    }
+    return false;
+}
+
 static ErrorCode diff(const Arena& in, NodeId id, Arena& out, NodeId* outRoot);
 static ErrorCode copyNode(const Arena& in, NodeId id, Arena& out, NodeId* outId);
 
@@ -279,6 +315,58 @@ static ErrorCode diff(const Arena& in, NodeId id, Arena& out, NodeId* outRoot) {
         }
 
         case NodeType::FuncCall: {
+            // Special case: d/dx(ln(abs(x))) = 1/x
+            // Extended: d/dx(ln(abs(ax+b))) = a/(ax+b)
+            // Must check BEFORE the generic chain rule, since abs is not differentiable
+            if (n.func == FuncType::Ln) {
+                const Node& argNode = in.at(n.left);
+                if (argNode.type == NodeType::FuncCall && argNode.func == FuncType::Abs) {
+                    const Node& innerNode = in.at(argNode.left);
+                    if (innerNode.type == NodeType::Var) {
+                        // d/dx(ln(abs(x))) = 1/x
+                        NodeId one = mkConst(out, 1.0);
+                        if (one == INVALID_ID) return ErrorCode::ResourceExhausted;
+                        NodeId v = mkVar(out);
+                        if (v == INVALID_ID) return ErrorCode::ResourceExhausted;
+                        NodeId invX = mkBinOp(out, OpType::Div, one, v);
+                        if (invX == INVALID_ID) return ErrorCode::ResourceExhausted;
+                        *outRoot = invX;
+                        return ErrorCode::OK;
+                    }
+                    // Check for affine: ax+b inside abs
+                    MONOCALC_REAL aCoeff, bConst;
+                    if (isAffineDiff(in, argNode.left, &aCoeff, &bConst)) {
+                        if (std::abs(aCoeff) > 1e-15) {
+                            // d/dx(ln(abs(ax+b))) = a/(ax+b)
+                            NodeId aNode = mkConst(out, aCoeff);
+                            if (aNode == INVALID_ID) return ErrorCode::ResourceExhausted;
+                            NodeId v = mkVar(out);
+                            if (v == INVALID_ID) return ErrorCode::ResourceExhausted;
+                            NodeId ax = mkBinOp(out, OpType::Mul, aNode, v);
+                            if (ax == INVALID_ID) return ErrorCode::ResourceExhausted;
+                            if (std::abs(bConst) > 1e-15) {
+                                NodeId bNode = mkConst(out, bConst);
+                                if (bNode == INVALID_ID) return ErrorCode::ResourceExhausted;
+                                NodeId axb = mkBinOp(out, OpType::Add, ax, bNode);
+                                if (axb == INVALID_ID) return ErrorCode::ResourceExhausted;
+                                NodeId result = mkBinOp(out, OpType::Div, aNode, axb);
+                                if (result == INVALID_ID) return ErrorCode::ResourceExhausted;
+                                *outRoot = result;
+                                return ErrorCode::OK;
+                            } else {
+                                // a / (ax) = 1/x
+                                NodeId one = mkConst(out, 1.0);
+                                if (one == INVALID_ID) return ErrorCode::ResourceExhausted;
+                                NodeId result = mkBinOp(out, OpType::Div, one, v);
+                                if (result == INVALID_ID) return ErrorCode::ResourceExhausted;
+                                *outRoot = result;
+                                return ErrorCode::OK;
+                            }
+                        }
+                    }
+                }
+            }
+
             // Chain rule: d/dx(f(g(x))) = f'(g(x)) * g'(x)
             NodeId argCopy, dArg;
             ErrorCode err = copyNode(in, n.left, out, &argCopy);
@@ -321,9 +409,7 @@ static ErrorCode diff(const Arena& in, NodeId id, Arena& out, NodeId* outRoot) {
                     break;
                 }
                 case FuncType::Abs: {
-                    // d/dx(abs(u)) = u'/abs(u) * |u|/u ... simplified: u' * sign(u)
-                    // We'll use: u' * u / abs(u) but that's complex
-                    // For simplicity: reject abs differentiation for now
+                    // d/dx(abs(u)) — not supported
                     return ErrorCode::UnsupportedOperation;
                 }
                 default:

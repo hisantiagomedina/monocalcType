@@ -9,7 +9,8 @@ ErrorCode domainCheck(const Domain& d, MONOCALC_REAL x) {
         case DomainType::All:
             return ErrorCode::OK;
         case DomainType::NotZero:
-            if (std::abs(x) < 1e-15) return ErrorCode::DomainError;
+            // excludedPoint holds the point that must be excluded
+            if (std::abs(x - d.excludedPoint) < 1e-15) return ErrorCode::DomainError;
             return ErrorCode::OK;
         case DomainType::Positive:
             if (x <= 0.0) return ErrorCode::DomainError;

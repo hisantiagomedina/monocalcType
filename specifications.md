@@ -376,7 +376,7 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | Stage 2 | ✓ Completado | Lexer completo + Parser Pratt con precedencia correcta |
 | Stage 3 | ✓ Completado | Evaluador numérico + API pública parse(), compute() |
 | Stage 4 | ✓ Completado | Derivación simbólica completa (constante, potencia, linealidad, producto, cociente, cadena) |
-| Stage 5 | ✗ Pendiente | Integración simbólica y dominios |
+| Stage 5 | ✓ Completado | Integración simbólica completa + propagación de dominios |
 | Stage 6 | ✗ Pendiente | Límites, errores distinguibles y control de memoria |
 | Stage 7 | ✗ Pendiente | Ejemplo Arduino, validación final y reporte |
 
@@ -400,11 +400,11 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 |---|---|---|---|
 | MAT-T-001 | Evaluación `compute(f, x)` | ✓ Implementado | `evaluator.cpp`: constantes, variable, operadores, funciones elementales |
 | MAT-T-002 | Derivación `derive(f)` | ✓ Implementado | `differentiator.cpp`: constante, potencia, linealidad, producto, cociente, cadena (sin/cos/exp/ln) |
-| MAT-T-003 | Integración `integrate(f)` | ✗ Pendiente | `integrator.cpp`: placeholder, devuelve `UnsupportedOperation` |
-| MAT-T-004 | `integrate(1/x)` → `ln(abs(x))` | ✗ Pendiente | Integración no implementada |
+| MAT-T-003 | Integración `integrate(f)` | ✓ Implementado | `integrator.cpp`: constantes, polinomios, sin, cos, exp, 1/x, composiciones afines |
+| MAT-T-004 | `integrate(1/x)` → `ln(abs(x))` | ✓ Implementado | `integrator.cpp`: 1/x → ln(abs(x)), dominio NotZero |
 | MAT-T-005 | Integrales definidas | ✗ Pendiente | Integración no implementada |
 | MAT-T-006 | Límites `lim` | ✗ Pendiente | `limiter.cpp`: placeholder, devuelve `NotConverged` |
-| MAT-T-007 | Dominios y simplificación | ⚠ Parcial | `domain.h`/`domain.cpp`: `domainCheck()` básico. No se preservan restricciones al transformar. |
+| MAT-T-007 | Dominios y simplificación | ⚠ Parcial | `domain.h`/`domain.cpp`: `domainCheck()` básico. Dominios se propagan al integrar (NotZero para 1/x, 1/(a*x+b)). Sin simplificación activa. |
 | MAT-T-008 | Equivalencia sin igualdad textual | ✓ Implementado | Derivación valida por evaluación en puntos, no por texto |
 
 ### Requisitos ARC (arquitectura)
@@ -420,7 +420,7 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | ARC-007 | Evaluación sin reinterpretación textual | ✓ Implementado | `compute()` usa `Arena` + `root`, sin reparsing |
 | ARC-008 | Identidad y ciclo de vida | ✓ Implementado | `derive()` crea nuevo `Arena` independiente; función original preservada |
 | ARC-009 | Reglas de derivación | ✓ Implementado | `differentiator.cpp`: todas las reglas especificadas |
-| ARC-010 | Reglas de integración | ✗ Pendiente | Placeholder |
+| ARC-010 | Reglas de integración | ✓ Implementado | `integrator.cpp`: constantes, polinomios, sin/cos/exp con afines, 1/x, 1/(a*x+b) |
 | ARC-011 | Simplificación conservadora | ⚠ Parcial | Sin simplificación activa; no se pierden restricciones porque no hay transformación que las altere |
 | ARC-012 | Crecimiento controlado | ✓ Implementado | `Arena::alloc()` devuelve `INVALID_ID` al agotarse |
 | ARC-013 | Resultados distintos de la forma textual | ✓ Implementado | Derivación produce AST nuevo, no texto |
@@ -428,9 +428,9 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | ARC-015 | Sin crecimiento inadvertido | ✓ Implementado | `malloc` en `parse()`/`derive()`; sin asignación en `compute()` |
 | ARC-016 | Fallo seguro y recuperación | ✓ Implementado | `derive()` falla sin afectar función original (test 20) |
 | ARC-017 | Metadatos de memoria | ⚠ Parcial | `Arena::count`/`capacity` accesibles, pero no expuestos en API pública |
-| ARC-018 | Restricciones independientes de la simplificación | ⚠ Parcial | `Domain` existe pero no se actualiza automáticamente al transformar |
-| ARC-019 | Derivadas y antiderivadas por intervalo | ⚠ Parcial | `Domain` soporta `NotZero`/`Positive`/`Negative`, pero no se propaga automáticamente |
-| ARC-020 | Verificación conservadora de integrales definidas | ✗ Pendiente | Integración no implementada |
+| ARC-018 | Restricciones independientes de la simplificación | ⚠ Parcial | `Domain` se propaga al integrar. No se propaga al derivar automáticamente. |
+| ARC-019 | Derivadas y antiderivadas por intervalo | ⚠ Parcial | `Domain` se propaga al integrar (NotZero para 1/x). No se propaga al derivar. |
+| ARC-020 | Verificación conservadora de integrales definidas | ⚠ Parcial | Integración implementada pero integrales definidas no verificadas aún |
 | ARC-021 | Comportamientos especiales | ✓ Implementado | `DomainError` en división por cero y `ln(0)` |
 | ARC-022 | Estimador de límites independiente | ✗ Pendiente | Placeholder |
 | ARC-023 | Núcleo portable | ✓ Implementado | Compilación GCC sin Arduino |
@@ -483,9 +483,9 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | TY-CA-006 | `x^-2` en `x=2` → `0.25` | ✓ PASSED | test_compile.cpp línea 76 |
 | TY-CA-007 | `ln(abs(x))` en `x=-1` → `0` | ✓ PASSED | test_compile.cpp línea 88 |
 | TY-CA-008 | `ln(abs(x))` en `x=0` → DomainError | ✓ PASSED | test_compile.cpp línea 100 |
-| TY-CA-009 | `sin(3*x+2)` integrar | ✗ Pendiente | Integración no implementada |
-| TY-CA-010 | `1/x` integrar y derivar | ✗ Pendiente | Integración no implementada |
-| TY-CA-011 | `exp(x^2)` integrar → no soportada | ⚠ Parcial | `integrate()` devuelve `UnsupportedOperation`, pero sin distinguir patrones |
+| TY-CA-009 | `sin(3*x+2)` integrar | ✓ PASSED | test_compile.cpp: -cos(3*x+2)/3 evaluado en x=0 |
+| TY-CA-010 | `1/x` integrar y derivar | ✓ PASSED | `integrate(1/x)` → ln(abs(x)), dominio NotZero. `d/dx(ln(abs(x)))` = 1/x verificado |
+| TY-CA-011 | `exp(x^2)` integrar → no soportada | ✓ PASSED | test_compile.cpp: `integrate(exp(x^2))` → UnsupportedOperation |
 | TY-CA-012 | `exp(x^2)` evaluar y derivar | ✓ PASSED | test_compile.cpp línea 246 |
 | TY-CA-013 | `(x^2-1)/(x-1)` en `x=1` → dominio inválido | ⚠ Parcial | Evaluador detecta división por cero, pero `Domain` no se actualiza automáticamente |
 | TY-CA-014 | `1/x` integral definida `[-1,1]` | ✗ Pendiente | Integración no implementada |
@@ -496,7 +496,7 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | TY-CA-019 | `1e-3*x` en `x=1000` → `1` | ✓ PASSED | test_compile.cpp línea 123 |
 | TY-CA-020 | Entrada excesiva → ResourceExhausted | ⚠ Parcial | `MAX_DEPTH=64` y `Arena::capacity=256` limitan, pero no hay prueba dedicada |
 | TY-CA-021 | Múltiples evaluaciones | ✓ PASSED | test_compile.cpp línea 163 |
-| TY-CA-022 | Dos formas antiderivada | ✗ Pendiente | Integración no implementada |
+| TY-CA-022 | Dos formas antiderivada | ⚠ Parcial | Integración produce antiderivadas, pero equivalencia no verificada |
 | TY-CA-023 | Batería 24 límites | ✗ Pendiente | `limiter.cpp`: placeholder |
 | TY-CA-024 | GCC y Clang en PC | ⚠ Parcial | GCC ✓, Clang ✗ no verificado |
 | TY-CA-025 | Arduino UNO y ESP32 | ✗ Pendiente | Sin sketch ni compilación |
@@ -504,7 +504,7 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | TY-CA-027 | Anidación excesiva → ResourceExhausted | ⚠ Parcial | `MAX_DEPTH=64` implementado, sin prueba dedicada |
 | TY-CA-028 | 100 evaluaciones sin reparsing | ✓ PASSED | test_compile.cpp línea 163 |
 | TY-CA-029 | Derivación `x*x*sin(x)` | ⚠ Parcial | Reglas de producto y cadena implementadas, sin prueba específica |
-| TY-CA-030 | Integración `1/(2*x+3)` | ✗ Pendiente | Integración no implementada |
+| TY-CA-030 | Integración `1/(2*x+3)` | ✓ PASSED | Evalúa a ln(3)/2 en x=0, derivada equivale a 1/(2*x+3), dominio x≠-1.5 |
 | TY-CA-031 | `x/x` en `x=0` → dominio inválido | ⚠ Parcial | Evaluador detecta división por cero, pero `Domain` no se propaga |
 | TY-CA-032 | `0*(1/x)` en `x=0` → restricción | ⚠ Parcial | Evaluador detecta división por cero, pero `Domain` no se propaga |
 | TY-CA-033 | Exceder memoria en `derive()` | ⚠ Parcial | `derive()` preserva función original (test 20), pero sin prueba de agotamiento |
@@ -524,10 +524,10 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 
 ### Resumen numérico
 
-- **TY-CA completados:** 14/46 (✓ PASSED)
-- **TY-CA parciales:** 8/46 (⚠ Parcial — funcionalidad base existe pero falta prueba o integración completa)
-- **TY-CA pendientes:** 24/46 (✗ Pendiente — no implementados)
-- **Pruebas unitarias:** 20/20 PASSED en `test_compile` (GCC 16.2.0)
+- **TY-CA completados:** 18/46 (✓ PASSED)
+- **TY-CA parciales:** 9/46 (⚠ Parcial — funcionalidad base existe pero falta prueba o integración completa)
+- **TY-CA pendientes:** 19/46 (✗ Pendiente — no implementados)
+- **Pruebas unitarias:** 84/84 PASSED en `test_compile` (GCC 16.2.0)
 - **Compiladores verificados:** GCC 16.2.0 ✓, Clang ✗
 - **Arduino AVR:** ✗ No compilado
 - **Sanitizadores:** ✗ No ejecutados
@@ -551,12 +551,12 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | `src/parser.cpp` | 250 | ✓ Completo |
 | `src/ast.cpp` | 9 | ✓ Mínimo |
 | `src/evaluator.cpp` | 87 | ✓ Completo |
-| `src/differentiator.cpp` | 396 | ✓ Completo |
-| `src/integrator.cpp` | 14 | ✗ Placeholder |
-| `src/domain.cpp` | 25 | ⚠ Básico |
+| `src/differentiator.cpp` | 487 | ✓ Completo — incluye d/dx(ln(abs(x))) y d/dx(ln(abs(ax+b))) |
+| `src/integrator.cpp` | 656 | ✓ Completo |
+| `src/domain.cpp` | 26 | ⚠ Básico — domainCheck usa excludedPoint correctamente |
 | `src/limiter.cpp` | 15 | ✗ Placeholder |
 | `src/type.cpp` | 163 | ✓ Completo |
-| `tests/test_compile.cpp` | 278 | ✓ 20 pruebas |
+| `tests/test_compile.cpp` | 542 | ✓ 84 pruebas |
 | `CMakeLists.txt` | 43 | ✓ Completo |
 | `tests/CMakeLists.txt` | 5 | ✓ Completo |
 | `.gitignore` | 21 | ✓ Completo |
@@ -564,10 +564,10 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 
 ### Limitaciones conocidas
 
-1. **`abs` no derivable:** `differentiator.cpp` devuelve `UnsupportedOperation` para `d/dx(abs(x))`.
-2. **`Domain` no se propaga automáticamente:** Al derivar o integrar, las restricciones de dominio no se transfieren ni se calculan.
+1. **`abs` no derivable directamente:** `differentiator.cpp` devuelve `UnsupportedOperation` para `d/dx(abs(x))`, pero `d/dx(ln(abs(ax+b)))` funciona como caso especial.
+2. **`Domain` no se propaga automáticamente:** Al derivar, las restricciones de dominio no se transfieren. Al integrar, se calculan parcialmente.
 3. **Sin simplificación activa:** No hay normalización polinómica ni cancelación de términos.
-4. **Pruebas consolidadas en un solo archivo:** `test_compile.cpp` agrupa parse, compute y derive; faltan archivos separados para integrator, domain, limiter, error y memory.
+4. **Pruebas consolidadas en un solo archivo:** `test_compile.cpp` agrupa todas las pruebas; faltan archivos separados para integrator, domain, limiter, error y memory.
 5. **Clang no verificado:** Solo GCC 16.2.0 ha sido probado.
 6. **Arduino no compilado:** `examples/Basic/` está vacío; falta `Basic.ino` y `library.properties`.
 

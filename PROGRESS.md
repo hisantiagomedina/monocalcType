@@ -27,6 +27,17 @@
 - Regla de cadena para sin, cos, exp, ln
 - copyNode para copiar subárboles al arena de salida
 - exp(x^2) derivable y evaluable
+- Caso especial: d/dx(ln(abs(x))) = 1/x
+- Caso extendido: d/dx(ln(abs(ax+b))) = a/(ax+b) para composiciones afines
+
+### ✓ Stage 5: Integración simbólica y dominios
+- Integrador completo: constantes, polinomios (x^n), sin, cos, exp, 1/x → ln|a|x|
+- Composiciones afines: sin(a*x+b), cos(a*x+b), exp(a*x+b)
+- 1/(a*x+b) → ln|a|a*x+b|/a
+- x^(-n) manejado con UnaryOp Neg
+- Propagación de dominios: NotZero para 1/x, 1/(a*x+b), x^(-n)
+- Rechazo explícito: exp(x^2), ln(x), abs(x), funciones racionales
+- isAffine() para detectar a*x+b en argumentos de funciones
 
 ## Requisitos Implementados
 - TY-CA-001: (x^2+5)/(x+2) en x=1 → 2 ✓
@@ -37,6 +48,10 @@
 - TY-CA-006: x^-2 en x=2 → 0.25 ✓
 - TY-CA-007: ln(abs(x)) en x=-1 → 0 ✓
 - TY-CA-008: ln(abs(x)) en x=0 → DomainError ✓
+- TY-CA-009: sin(3*x+2) integrar ✓
+- TY-CA-010: 1/x integrar → ln|a|x|, dominio NotZero ✓
+- TY-CA-011: exp(x^2) integrar → UnsupportedOperation ✓
+- TY-CA-012: exp(x^2) evaluar y derivar ✓
 - TY-CA-015: x+ → SyntaxError ✓
 - TY-CA-016: sin(x → SyntaxError ✓
 - TY-CA-017: 2x → SyntaxError ✓
@@ -44,13 +59,15 @@
 - TY-CA-019: 1e-3*x en x=1000 → 1 ✓
 - TY-CA-021: Múltiples evaluaciones ✓
 - TY-CA-028: 100 evaluaciones sin reparsear ✓
-- TY-CA-012: exp(x^2) evaluar y derivar ✓
 - TY-CA-029: Derivación de x*x*sin(x) ✓
+- TY-CA-030: 1/(2*x+3) integrar ✓, evaluar ✓, derivar integral ✓, dominio ✓
 - TY-CA-034: Reutilizar derivada tras destruir contexto ✓
 
 ## Resultados de Pruebas
 - Compilación GCC 16.2.0: ✓ exitosa
-- Pruebas test_compile: 20/20 PASSED (14 parse/compute + 6 derive)
+- Pruebas test_compile: **84/84 PASSED** (20 parse/compute/derive + 64 integración)
+- Bug corregido: domainCheck(NotZero) usaba x=0 hardcodeado; ahora usa excludedPoint
+- Bug corregido: d/dx(ln(abs(ax+b))) detectado antes de la regla de cadena genérica
 - Clang: pendiente
 - Arduino AVR: pendiente
 
@@ -60,6 +77,10 @@
 - Potencia derecha-asociativa en parseUnaryOperand para x^2^3 = x^(2^3)
 - Notación científica en lexer con verificación de dígito después de e/E
 - Detección de multiplicación implícita en type.cpp después del lexer
+- Integrador con isAffine() recursivo para detectar a*x+b
+- integrateAst() renombrado para evitar colisión con integrate() de type.cpp
+- d/dx(ln(abs(x))) y d/dx(ln(abs(ax+b))) como casos especiales antes de la regla de cadena
+- domainCheck(NotZero) usa excludedPoint para el punto excluido real
 
 ## Próximo Milestone
-**Stage 5: Integración simbólica y dominios** — Implementar integrator.cpp con reglas para constantes, polinomios, sin, cos, exp, 1/x y composiciones afines. Gestionar dominios con domain.h.
+**Stage 6: Límites, errores distinguibles y control de memoria** — Implementar limiter.cpp, pruebas de errores y memoria.
