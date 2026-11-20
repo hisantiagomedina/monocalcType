@@ -10,6 +10,12 @@ build-clang/
 *.code-workspace
 .codelite/
 
+# CodeLite
+.codelite/
+
+# Diagnósticos locales
+build_err.txt
+
 # Test reports
 junit.xml
 test-report.md
