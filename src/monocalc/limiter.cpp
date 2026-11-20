@@ -6,59 +6,126 @@
 
 namespace monocalc {
 
-// Numerical limit estimation using progressively smaller steps.
-// Returns the limit value if convergent, or indicates divergence/non-convergence.
+// Numerical limit estimation using adaptive criteria.
+// No fixed magnitude threshold for divergence.
+// Compares successive values at multiple scales to detect convergence,
+// divergence (monotonic growth), oscillation, or plateau from precision loss.
 static LimitResult limitOneSide(const Arena& arena, NodeId root, MONOCALC_REAL x0, bool fromLeft) {
-    const MONOCALC_REAL h0 = 1e-2;
-    const int maxIter = 50;
-    const MONOCALC_REAL tol = 1e-10;
-    const MONOCALC_REAL divergeThreshold = 1e15;
+    const int maxIter = 60;
+    const MONOCALC_REAL tol = 1e-8;
 
-    MONOCALC_REAL h = h0;
+    MONOCALC_REAL h = 1e-1;
     MONOCALC_REAL sign = fromLeft ? -1.0 : 1.0;
-    MONOCALC_REAL prevVal = 0.0;
-    bool first = true;
 
-    for (int i = 0; i < maxIter; i++) {
+    // Collect valid samples
+    struct Sample { MONOCALC_REAL x; MONOCALC_REAL val; };
+    Sample samples[64];
+    int sampleCount = 0;
+
+    for (int i = 0; i < maxIter && sampleCount < 64; i++) {
         MONOCALC_REAL x = x0 + sign * h;
-        EvalResult r = evaluate(arena, root, x);
-        if (!r.ok) {
-            // Domain error at this point — try smaller step
+        // Detect if x == x0 (precision loss)
+        if (x == x0) {
             h *= 0.1;
             continue;
         }
-
-        // Check for divergence: value grows without bound
-        if (fabs(r.value) > divergeThreshold) {
-            LimitResult lr;
-            lr.ok = false;
-            lr.value = r.value > 0 ? (MONOCALC_REAL)INFINITY : -(MONOCALC_REAL)INFINITY;
-            lr.err = ErrorCode::Diverged;
-            return lr;
+        EvalResult r = evaluate(arena, root, x);
+        if (!r.ok) {
+            h *= 0.1;
+            continue;
         }
-
-        if (!first) {
-            // Check convergence: successive values are close
-            MONOCALC_REAL diff = fabs(r.value - prevVal);
-            if (diff < tol * fabs(prevVal) || diff < tol) {
-                // Converged
-                LimitResult lr;
-                lr.ok = true;
-                lr.value = r.value;
-                lr.err = ErrorCode::OK;
-                return lr;
-            }
+        if (isnan(r.value) || isinf(r.value)) {
+            // Non-finite value — may indicate divergence
+            h *= 0.1;
+            continue;
         }
-
-        prevVal = r.value;
-        first = false;
+        samples[sampleCount].x = x;
+        samples[sampleCount].val = r.value;
+        sampleCount++;
         h *= 0.1;
     }
 
-    // Did not converge within iterations
+    if (sampleCount < 3) {
+        // Not enough valid samples
+        LimitResult lr;
+        lr.ok = false;
+        lr.value = 0.0;
+        lr.err = ErrorCode::NotConverged;
+        return lr;
+    }
+
+    // Check for divergence: values grow monotonically in magnitude
+    bool growing = true;
+    for (int i = 1; i < sampleCount; i++) {
+        if (fabs(samples[i].val) <= fabs(samples[i-1].val)) {
+            growing = false;
+            break;
+        }
+    }
+    if (growing && sampleCount >= 5) {
+        // Check if last values are very large compared to first
+        MONOCALC_REAL ratio = fabs(samples[sampleCount-1].val) / (fabs(samples[0].val) < 1e-300 ? 1e-300 : fabs(samples[0].val));
+        if (ratio > 1e6) {
+            LimitResult lr;
+            lr.ok = false;
+            lr.value = samples[sampleCount-1].val > 0 ? (MONOCALC_REAL)INFINITY : -(MONOCALC_REAL)INFINITY;
+            lr.err = ErrorCode::Diverged;
+            return lr;
+        }
+    }
+
+    // Check for convergence: last N samples agree within tolerance
+    // Use last 5 samples (smallest h)
+    int checkN = sampleCount >= 5 ? 5 : sampleCount;
+    int startIdx = sampleCount - checkN;
+    MONOCALC_REAL refVal = samples[startIdx].val;
+
+    // Relative tolerance based on magnitude
+    MONOCALC_REAL relTol = tol;
+    if (fabs(refVal) > 1e6) {
+        relTol = tol * fabs(refVal); // absolute tolerance for large values
+    }
+
+    bool converged = true;
+    for (int i = startIdx + 1; i < sampleCount; i++) {
+        MONOCALC_REAL diff = fabs(samples[i].val - refVal);
+        MONOCALC_REAL threshold = relTol;
+        if (fabs(refVal) > 1.0) {
+            threshold = tol * fabs(refVal);
+        }
+        if (diff > threshold) {
+            converged = false;
+            break;
+        }
+    }
+
+    if (converged) {
+        LimitResult lr;
+        lr.ok = true;
+        lr.value = samples[sampleCount-1].val;
+        lr.err = ErrorCode::OK;
+        return lr;
+    }
+
+    // Check for oscillation: sign changes in last samples
+    int signChanges = 0;
+    for (int i = startIdx + 1; i < sampleCount; i++) {
+        if ((samples[i].val > 0) != (samples[i-1].val > 0)) {
+            signChanges++;
+        }
+    }
+    if (signChanges >= 2) {
+        LimitResult lr;
+        lr.ok = false;
+        lr.value = 0.0;
+        lr.err = ErrorCode::NotConverged;
+        return lr;
+    }
+
+    // Not converged
     LimitResult lr;
     lr.ok = false;
-    lr.value = prevVal;
+    lr.value = samples[sampleCount-1].val;
     lr.err = ErrorCode::NotConverged;
     return lr;
 }

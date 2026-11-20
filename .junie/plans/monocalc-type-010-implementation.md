@@ -360,10 +360,19 @@ Implementar estimación de límites, categorías de error y control de memoria.
 Preparar el sketch Arduino, validar compilación para AVR y generar informe final.
 - `examples/Basic/Basic.ino`: ✓ sketch (90 líneas, compatible AVR), sin duplicación de archivos
 - **Estructura compartida:** CMake y Arduino CLI usan los mismos archivos en `src/monocalc/`
-- `src/type.h`: ✓ entry point para Arduino CLI (copia de `src/monocalc/type.h`)
+- `src/type.h`: ✓ wrapper mínimo (8 líneas) para Arduino CLI
 - `library.properties`: ✓ metadata (`includes=type.h`)
-- Compilación AVR: ✓ Exitosa — 21184 bytes Flash (65%), 274 bytes SRAM (13%)
+- Compilación AVR: ✓ Exitosa — 22464 bytes Flash (69%), 274 bytes SRAM (13%)
 - Comando verificado: `arduino-cli compile --fqbn arduino:avr:uno --library . examples/Basic`
-- Headers portables: `#if defined(__AVR__)` para `size_t`, headers C en .cpp
-- Clang: ⚠ No verificado (pendiente)
-- Informes JUnit/Markdown: ⚠ No generados (pendiente)
+- Headers portables: `#if defined(__AVR__)` para `size_t`, capacidades, headers C en .cpp
+- Clang: ✓ Verificado (23.1.5, 0 warnings)
+- Informes JUnit/Markdown: ✓ Generados (junit.xml, COMPLIANCE.md)
+
+### Session 2 — S2-A a S2-G Completados
+- **S2-A:** Línea base verificada (125 pruebas, herramientas confirmadas)
+- **S2-B:** Capacidades por plataforma (AVR: 64/32/64, PC: 256/128/256)
+- **S2-C:** Domain múltiples puntos excluidos, `d/dx(abs(u))`, propagación de dominios
+- **S2-D:** `integrateDefinite()` API con verificación de intervalos
+- **S2-E:** Limiter adaptativo, batería 24 límites (L01-L24)
+- **S2-F:** GCC 16.2.0 ✓, Clang 23.1.5 ✓, Arduino AVR ✓ (166/166 pruebas, 0 warnings)
+- **S2-G:** JUnit XML ✓, COMPLIANCE.md ✓, documentación actualizada

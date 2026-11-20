@@ -8,7 +8,6 @@ namespace monocalc {
 
 /* Forward declarations */
 static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* outRoot, Domain* outDomain);
-static ErrorCode copyNode(const Arena& in, NodeId id, Arena& out, NodeId* outId);
 
 /* Helper: create a constant node */
 static NodeId mkConst(Arena& out, MONOCALC_REAL v) {
@@ -170,52 +169,6 @@ static bool isAffine(const Arena& in, NodeId id, MONOCALC_REAL* aCoeff, MONOCALC
     }
 }
 
-/* Deep copy a node from input arena to output arena */
-static ErrorCode copyNode(const Arena& in, NodeId id, Arena& out, NodeId* outId) {
-    const Node& n = in.at(id);
-    NodeId nid = out.alloc();
-    if (nid == INVALID_ID) return ErrorCode::ResourceExhausted;
-    Node& nOut = out.at(nid);
-
-    nOut.type = n.type;
-    switch (n.type) {
-        case NodeType::Const:
-            nOut.constant = n.constant;
-            break;
-        case NodeType::UnaryOp:
-        case NodeType::BinaryOp:
-            nOut.op = n.op;
-            break;
-        case NodeType::FuncCall:
-            nOut.func = n.func;
-            break;
-        case NodeType::Var:
-            break;
-    }
-
-    if (n.type == NodeType::UnaryOp || n.type == NodeType::FuncCall) {
-        NodeId copied;
-        ErrorCode err = copyNode(in, n.left, out, &copied);
-        if (err != ErrorCode::OK) return err;
-        nOut.left = copied;
-        nOut.right = INVALID_ID;
-    } else if (n.type == NodeType::BinaryOp) {
-        NodeId lCopy, rCopy;
-        ErrorCode err = copyNode(in, n.left, out, &lCopy);
-        if (err != ErrorCode::OK) return err;
-        err = copyNode(in, n.right, out, &rCopy);
-        if (err != ErrorCode::OK) return err;
-        nOut.left = lCopy;
-        nOut.right = rCopy;
-    } else {
-        nOut.left = INVALID_ID;
-        nOut.right = INVALID_ID;
-    }
-
-    *outId = nid;
-    return ErrorCode::OK;
-}
-
 /* Main integration function */
 static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* outRoot, Domain* outDomain) {
     const Node& n = in.at(id);
@@ -230,7 +183,7 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
             NodeId mul = mkBinOp(out, OpType::Mul, c, v);
             if (mul == INVALID_ID) return ErrorCode::ResourceExhausted;
             *outRoot = mul;
-            if (outDomain) { outDomain->type = DomainType::All; outDomain->excludedPoint = 0.0; }
+            if (outDomain) { *outDomain = Domain(); }
             return ErrorCode::OK;
         }
 
@@ -247,7 +200,7 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
             NodeId result = mkBinOp(out, OpType::Mul, half, x2);
             if (result == INVALID_ID) return ErrorCode::ResourceExhausted;
             *outRoot = result;
-            if (outDomain) { outDomain->type = DomainType::All; outDomain->excludedPoint = 0.0; }
+            if (outDomain) { *outDomain = Domain(); }
             return ErrorCode::OK;
         }
 
@@ -370,7 +323,7 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                                     NodeId result = mkBinOp(out, OpType::Mul, cNode, v);
                                     if (result == INVALID_ID) return ErrorCode::ResourceExhausted;
                                     *outRoot = result;
-                                    if (outDomain) { outDomain->type = DomainType::All; outDomain->excludedPoint = 0.0; }
+                                    if (outDomain) { *outDomain = Domain(); }
                                     return ErrorCode::OK;
                                 }
                                 // ∫1/(a*x+b) dx = ln|a*x+b| / a
@@ -398,8 +351,9 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                                 if (result == INVALID_ID) return ErrorCode::ResourceExhausted;
                                 *outRoot = result;
                                 if (outDomain) {
+                                    *outDomain = Domain();
                                     outDomain->type = DomainType::NotZero;
-                                    outDomain->excludedPoint = -bConst / aCoeff;
+                                    outDomain->addExcluded(-bConst / aCoeff);
                                 }
                                 return ErrorCode::OK;
                             }
@@ -417,7 +371,7 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                             NodeId lnAbs = mkFunc(out, FuncType::Ln, absV);
                             if (lnAbs == INVALID_ID) return ErrorCode::ResourceExhausted;
                             *outRoot = lnAbs;
-                            if (outDomain) { outDomain->type = DomainType::NotZero; outDomain->excludedPoint = 0.0; }
+                            if (outDomain) { *outDomain = Domain(); outDomain->type = DomainType::NotZero; outDomain->addExcluded(0.0); }
                             return ErrorCode::OK;
                         }
                     }
@@ -452,7 +406,7 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                                     NodeId lnAbs = mkFunc(out, FuncType::Ln, absV);
                                     if (lnAbs == INVALID_ID) return ErrorCode::ResourceExhausted;
                                     *outRoot = lnAbs;
-                                    if (outDomain) { outDomain->type = DomainType::NotZero; outDomain->excludedPoint = 0.0; }
+                                    if (outDomain) { *outDomain = Domain(); outDomain->type = DomainType::NotZero; outDomain->addExcluded(0.0); }
                                     return ErrorCode::OK;
                                 }
                                 // ∫x^n dx = x^(n+1) / (n+1)
@@ -470,11 +424,11 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                                 *outRoot = result;
                                 if (outDomain) {
                                     if (nPlus1 < 0) {
+                                        *outDomain = Domain();
                                         outDomain->type = DomainType::NotZero;
-                                        outDomain->excludedPoint = 0.0;
+                                        outDomain->addExcluded(0.0);
                                     } else {
-                                        outDomain->type = DomainType::All;
-                                        outDomain->excludedPoint = 0.0;
+                                        *outDomain = Domain();
                                     }
                                 }
                                 return ErrorCode::OK;
@@ -508,7 +462,7 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                             NodeId result = mkBinOp(out, OpType::Mul, cNode, v);
                             if (result == INVALID_ID) return ErrorCode::ResourceExhausted;
                             *outRoot = result;
-                            if (outDomain) { outDomain->type = DomainType::All; outDomain->excludedPoint = 0.0; }
+                            if (outDomain) { *outDomain = Domain(); }
                             return ErrorCode::OK;
                         }
                         // Build: a*x + b
@@ -534,7 +488,7 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                         NodeId result = mkBinOp(out, OpType::Mul, invA, negCos);
                         if (result == INVALID_ID) return ErrorCode::ResourceExhausted;
                         *outRoot = result;
-                        if (outDomain) { outDomain->type = DomainType::All; outDomain->excludedPoint = 0.0; }
+                        if (outDomain) { *outDomain = Domain(); }
                         return ErrorCode::OK;
                     }
                     return ErrorCode::UnsupportedOperation;
@@ -552,7 +506,7 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                             NodeId result = mkBinOp(out, OpType::Mul, cNode, v);
                             if (result == INVALID_ID) return ErrorCode::ResourceExhausted;
                             *outRoot = result;
-                            if (outDomain) { outDomain->type = DomainType::All; outDomain->excludedPoint = 0.0; }
+                            if (outDomain) { *outDomain = Domain(); }
                             return ErrorCode::OK;
                         }
                         // Build: a*x + b
@@ -575,7 +529,7 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                         NodeId result = mkBinOp(out, OpType::Mul, invA, sinAxb);
                         if (result == INVALID_ID) return ErrorCode::ResourceExhausted;
                         *outRoot = result;
-                        if (outDomain) { outDomain->type = DomainType::All; outDomain->excludedPoint = 0.0; }
+                        if (outDomain) { *outDomain = Domain(); }
                         return ErrorCode::OK;
                     }
                     return ErrorCode::UnsupportedOperation;
@@ -593,7 +547,7 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                             NodeId result = mkBinOp(out, OpType::Mul, cNode, v);
                             if (result == INVALID_ID) return ErrorCode::ResourceExhausted;
                             *outRoot = result;
-                            if (outDomain) { outDomain->type = DomainType::All; outDomain->excludedPoint = 0.0; }
+                            if (outDomain) { *outDomain = Domain(); }
                             return ErrorCode::OK;
                         }
                         // Build: a*x + b
@@ -616,7 +570,7 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                         NodeId result = mkBinOp(out, OpType::Mul, invA, expAxb);
                         if (result == INVALID_ID) return ErrorCode::ResourceExhausted;
                         *outRoot = result;
-                        if (outDomain) { outDomain->type = DomainType::All; outDomain->excludedPoint = 0.0; }
+                        if (outDomain) { *outDomain = Domain(); }
                         return ErrorCode::OK;
                     }
                     // exp(non-affine) → not supported
@@ -646,8 +600,7 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
 
 ErrorCode integrateAst(const Arena& in, NodeId root, Arena& out, NodeId* outRoot, Domain* outDomain) {
     if (outDomain) {
-        outDomain->type = DomainType::All;
-        outDomain->excludedPoint = 0.0;
+        *outDomain = Domain();
     }
     return integrateNode(in, root, out, outRoot, outDomain);
 }

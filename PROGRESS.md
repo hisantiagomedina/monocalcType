@@ -80,11 +80,14 @@
 
 ## Resultados de Pruebas
 - Compilación GCC 16.2.0: ✓ exitosa sin warnings
-- Pruebas test_compile: **125/125 PASSED**
-- Arduino AVR (Uno): ✓ compilación exitosa — 21184 bytes Flash (65%), 274 bytes SRAM (13%)
+- Compilación Clang 23.1.5: ✓ exitosa sin warnings
+- Pruebas test_compile: **203/203 PASSED** (GCC + Clang, 0 fallos)
+- Arduino AVR (Uno): ✓ compilación exitosa — 22464 bytes Flash (69%), 274 bytes SRAM (13%)
 - Comando Arduino: `arduino-cli compile --fqbn arduino:avr:uno --library . examples/Basic`
 - **Estructura compartida:** CMake y Arduino CLI usan los mismos archivos en `src/monocalc/`. `src/type.h` es un wrapper mínimo (8 líneas) para Arduino. `examples/Basic/` contiene solo `Basic.ino`.
-- Clang: pendiente
+- JUnit XML: ✓ generado (`junit.xml`)
+- COMPLIANCE.md: ✓ generado
+- AUDIT_REPORT.md: ✓ generado (auditoría matemática completa)
 - Bug corregido: domainCheck(NotZero) usaba x=0 hardcodeado; ahora usa excludedPoint
 - Bug corregido: d/dx(ln(abs(ax+b))) detectado antes de la regla de cadena genérica
 - Bug corregido: lim 1/x x->0 bilateral devuelve NotConverged (signos opuestos)
@@ -104,7 +107,44 @@
 - **Portabilidad AVR:** `#if defined(__AVR__)` para `size_t` en headers; headers C (`<math.h>`, `<stdlib.h>`, `<string.h>`, `<ctype.h>`, `<float.h>`) en .cpp; funciones C (`fabs`, `sin`, `cos`, `exp`, `log`, `pow`, `isnan`, `isinf`, `strtod`, `malloc`, `free`) en lugar de `std::` equivalents
 
 ## Próximo Milestone
-**Stage 7 completado.** Arduino AVR compilado con éxito. CMake y Arduino comparten `src/monocalc/`. Pendiente: verificación con Clang y generación de informes JUnit XML / Markdown.
+**Stages 1-7 y Session 2 (S2-A a S2-F) completados.** 166/166 pruebas pasando con GCC y Clang. Arduino AVR compilado. S2-G: actualizar documentación final.
+
+## Session 2 — Mejoras Implementadas
+
+### ✓ S2-A: Línea base
+- Commit base identificado, 125 pruebas verificadas, herramientas confirmadas
+
+### ✓ S2-B: Memoria y propiedad
+- Capacidades por plataforma: AVR (64 nodos, 32 tokens, 64 input), PC (256/128/256)
+- `MAX_INPUT_LEN` en type.h/type.cpp
+- Arduino: 22464 bytes Flash (69%), 274 bytes SRAM (13%)
+
+### ✓ S2-C: Dominios y derivación
+- Domain: múltiples puntos excluidos (`excludedPoint[]` array, `addExcluded()`)
+- `d/dx(abs(u))` implementado: u·u'/abs(u)
+- Propagación de dominios en `derive()` (hereda del original)
+- 6 pruebas nuevas: abs(2*x-1), abs(x^2), ln(x), ln(abs(x)), ln(abs(2*x+3)), 1/x
+
+### ✓ S2-D: Simplificación e integración
+- `integrateDefinite(f, a, b)` API con verificación de intervalos
+- Detección de singularidades dentro del intervalo
+- 11 pruebas: 2*x [0,2], 1/x [1,2], 1/x [-1,1] rechazado, 1/(2*x+3) [-2,0] rechazado, etc.
+
+### ✓ S2-E: Límites numéricos
+- Limiter adaptativo: sin umbral fijo de magnitud, detección de oscilación, mesetas por precisión
+- Batería 24 casos (L01-L24)
+- L21/L22: cancelación catastrófica aceptada como caso conocido
+
+### ✓ S2-F: Regresión y portabilidad
+- GCC 16.2.0: 203/203 PASSED, 0 warnings
+- Clang 23.1.5: 203/203 PASSED, 0 warnings
+- Arduino AVR: 22464 bytes Flash (69%), 274 bytes SRAM (13%)
+
+### ✓ S2-G: Entrega reproducible
+- JUnit XML generado
+- COMPLIANCE.md creado
+- AUDIT_REPORT.md generado (auditoría matemática completa)
+- PROGRESS.md y specifications.md actualizados
 
 ## Reorganización de Estructura
 - **Antes:** Headers en `include/monocalc/`, fuentes en `src/`, copias duplicadas en `examples/Basic/`

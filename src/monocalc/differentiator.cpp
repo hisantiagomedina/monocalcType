@@ -409,8 +409,14 @@ static ErrorCode diff(const Arena& in, NodeId id, Arena& out, NodeId* outRoot) {
                     break;
                 }
                 case FuncType::Abs: {
-                    // d/dx(abs(u)) — not supported
-                    return ErrorCode::UnsupportedOperation;
+                    // d/dx(abs(u)) = u * u' / abs(u)
+                    // fPrime = u / abs(u)
+                    NodeId absU = mkFunc(out, FuncType::Abs, argCopy);
+                    if (absU == INVALID_ID) return ErrorCode::ResourceExhausted;
+                    NodeId uOverAbsU = mkBinOp(out, OpType::Div, argCopy, absU);
+                    if (uOverAbsU == INVALID_ID) return ErrorCode::ResourceExhausted;
+                    fPrime = uOverAbsU;
+                    break;
                 }
                 default:
                     return ErrorCode::UnsupportedOperation;

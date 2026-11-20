@@ -14,8 +14,7 @@ namespace monocalc {
 
 ParseResult parse(const char* input, size_t len, Function& out) {
     out.root = INVALID_ID;
-    out.domain.type = DomainType::All;
-    out.domain.excludedPoint = 0.0;
+    out.domain = Domain();
     out.inputLen = 0;
     out.input[0] = '\0';
 
@@ -25,7 +24,7 @@ ParseResult parse(const char* input, size_t len, Function& out) {
         return r;
     }
 
-    size_t copyLen = len < sizeof(out.input) - 1 ? len : sizeof(out.input) - 1;
+    size_t copyLen = len < MAX_INPUT_LEN - 1 ? len : MAX_INPUT_LEN - 1;
     memcpy(out.input, input, copyLen);
     out.input[copyLen] = '\0';
     out.inputLen = copyLen;
@@ -105,8 +104,9 @@ EvalResult compute(const Function& f, MONOCALC_REAL x) {
 
 ErrorCode derive(const Function& f, Function& out) {
     out.root = INVALID_ID;
-    out.domain.type = DomainType::All;
-    out.domain.excludedPoint = 0.0;
+    out.domain = Domain();
+    // Inherit domain from original function
+    out.domain = f.domain;
     out.inputLen = 0;
     out.input[0] = '\0';
 
@@ -129,8 +129,7 @@ ErrorCode derive(const Function& f, Function& out) {
 
 ErrorCode integrate(const Function& f, Function& out) {
     out.root = INVALID_ID;
-    out.domain.type = DomainType::All;
-    out.domain.excludedPoint = 0.0;
+    out.domain = Domain();
     out.inputLen = 0;
     out.input[0] = '\0';
 
@@ -157,6 +156,72 @@ ErrorCode integrate(const Function& f, Function& out) {
         out.domain = f.domain;
     }
     return ErrorCode::OK;
+}
+
+EvalResult integrateDefinite(const Function& f, MONOCALC_REAL a, MONOCALC_REAL b) {
+    // Step 1: Find antiderivative F
+    Function F;
+    ErrorCode err = integrate(f, F);
+    if (err != ErrorCode::OK) {
+        EvalResult r; r.ok = false; r.value = 0.0; r.err = err;
+        return r;
+    }
+
+    // Step 2: Check domain at endpoints
+    ErrorCode da = domainCheck(F.domain, a);
+    if (da != ErrorCode::OK) {
+        EvalResult r; r.ok = false; r.value = 0.0; r.err = ErrorCode::DomainError;
+        return r;
+    }
+    ErrorCode db = domainCheck(F.domain, b);
+    if (db != ErrorCode::OK) {
+        EvalResult r; r.ok = false; r.value = 0.0; r.err = ErrorCode::DomainError;
+        return r;
+    }
+
+    // Step 3: Check for singularities inside the interval
+    // Check all excluded points
+    for (int i = 0; i < F.domain.excludedCount; i++) {
+        MONOCALC_REAL pt = F.domain.excludedPoint[i];
+        MONOCALC_REAL lo = a < b ? a : b;
+        MONOCALC_REAL hi = a < b ? b : a;
+        if (pt > lo && pt < hi) {
+            // Singularity inside interval
+            EvalResult r; r.ok = false; r.value = 0.0; r.err = ErrorCode::DomainError;
+            return r;
+        }
+    }
+
+    // Step 4: Check type-based restrictions
+    if (F.domain.type == DomainType::Positive) {
+        MONOCALC_REAL lo = a < b ? a : b;
+        if (lo <= 0.0) {
+            EvalResult r; r.ok = false; r.value = 0.0; r.err = ErrorCode::DomainError;
+            return r;
+        }
+    }
+    if (F.domain.type == DomainType::Negative) {
+        MONOCALC_REAL hi = a < b ? b : a;
+        if (hi >= 0.0) {
+            EvalResult r; r.ok = false; r.value = 0.0; r.err = ErrorCode::DomainError;
+            return r;
+        }
+    }
+
+    // Step 5: Evaluate F(b) - F(a)
+    auto rB = compute(F, b);
+    if (!rB.ok) {
+        EvalResult r; r.ok = false; r.value = 0.0; r.err = rB.err;
+        return r;
+    }
+    auto rA = compute(F, a);
+    if (!rA.ok) {
+        EvalResult r; r.ok = false; r.value = 0.0; r.err = rA.err;
+        return r;
+    }
+
+    EvalResult r; r.ok = true; r.value = rB.value - rA.value; r.err = ErrorCode::OK;
+    return r;
 }
 
 LimitResult lim(const Function& f, MONOCALC_REAL x0, LimitDirection dir) {
