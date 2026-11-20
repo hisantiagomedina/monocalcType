@@ -4,7 +4,6 @@
 #include "token.h"
 #include "ast.h"
 #include "error.h"
-#include <cstddef>
 
 namespace monocalc {
 

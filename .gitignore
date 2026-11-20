@@ -15,6 +15,9 @@ build-clang/
 
 # Diagnósticos locales
 build_err.txt
+err.txt
+err2.txt
+integrator.err
 
 # Test reports
 junit.xml

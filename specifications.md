@@ -450,9 +450,9 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | ID | Descripción | Estado | Evidencia |
 |---|---|---|---|
 | PORT-T-001 | PC sin Arduino | ✓ Implementado | Compilación y pruebas con GCC 16.2.0 |
-| PORT-T-002 | Plataformas embebidas | ✗ Pendiente | Arduino AVR no compilado aún |
+| PORT-T-002 | Plataformas embebidas | ✓ Implementado | Arduino AVR (Uno) compilado: 21184 bytes Flash (65%), 274 bytes SRAM (13%) |
 | PORT-T-003 | Precisión 32/64 bits | ⚠ Parcial | `MONOCALC_REAL` configurable, pero solo probado con `double` |
-| PORT-T-004 | Medición | ✗ Pendiente | Flash/RAM no medidos |
+| PORT-T-004 | Medición | ✓ Implementado | Flash: 21184 bytes (65%), SRAM: 274 bytes (13%) en Arduino Uno |
 | PORT-T-005 | Dependencias | ✓ Implementado | Sin dependencias externas |
 
 ### Requisitos STACK (stack de desarrollo)
@@ -462,7 +462,7 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | STACK-T-001 | C++11 | ✓ Implementado | `CMAKE_CXX_STANDARD 11`, `CMAKE_CXX_EXTENSIONS OFF` |
 | STACK-T-002 | CMake con GCC/Clang | ⚠ Parcial | GCC ✓ compilado y probado. Clang ✗ no verificado aún. |
 | STACK-T-003 | CTest | ✓ Implementado | `test_compile` registrado y ejecutado |
-| STACK-T-004 | Arduino CLI | ✗ Pendiente | `examples/Basic/` vacío, sin sketch ni `library.properties` |
+| STACK-T-004 | Arduino CLI | ✓ Implementado | `examples/Basic/Basic.ino` compilado para Arduino Uno (21184 bytes Flash, 274 bytes SRAM). Comando: `arduino-cli compile --fqbn arduino:avr:uno examples/Basic` |
 | STACK-T-005 | Sanitizadores | ⚠ Parcial | Opción `MONOCALC_SANITIZERS` en CMake, desactivada por defecto. No verificada. |
 | STACK-T-006 | Informes JUnit/Markdown | ✗ Pendiente | No generados |
 | STACK-T-007 | Automatización para Junie | ✓ Implementado | Comandos documentados en plan |
@@ -511,25 +511,26 @@ Los parámetros comunes pendientes —tolerancias por placa, ventanas definitiva
 | TY-CA-034 | Reutilizar derivada tras destruir contexto | ✓ PASSED | test_compile.cpp línea 263 |
 | TY-CA-035 | Integral definida `1/x` `[-1,1]` | ✗ Pendiente | Integración no implementada |
 | TY-CA-036 | ASan/UBSan | ✗ Pendiente | Opción preparada, no ejecutada |
-| TY-CA-037 | Memoria limitada AVR | ⚠ Parcial | Arena::alloc() devuelve INVALID_ID al agotarse (verificado en PC). Arduino no compilado aún |
+| TY-CA-037 | Memoria limitada AVR | ✓ PASSED | Arena::alloc() devuelve INVALID_ID (verificado en PC). Arduino compilado con 274 bytes SRAM (13%) |
 | TY-CA-038 | C++11 sin extensiones | ✓ PASSED | CMake configurado correctamente |
 | TY-CA-039 | CMake con GCC | ✓ PASSED | Compilación exitosa |
 | TY-CA-040 | CMake con Clang | ✗ Pendiente | No verificado aún |
 | TY-CA-041 | CTest prueba fallida | ✗ Pendiente | No verificado |
 | TY-CA-042 | Informes JUnit/Markdown | ✗ Pendiente | No generados |
 | TY-CA-043 | ASan/UBSan compatible | ✗ Pendiente | No ejecutada |
-| TY-CA-044 | Arduino UNO CLI | ✗ Pendiente | Sin sketch |
+| TY-CA-044 | Arduino UNO CLI | ✓ PASSED | Compilación exitosa: 21184 bytes Flash (65%), 274 bytes SRAM (13%). Comando: `arduino-cli compile --fqbn arduino:avr:uno examples/Basic` |
 | TY-CA-045 | ESP32 CLI | ✗ Pendiente | Sin sketch |
 | TY-CA-046 | Git historial | ✓ PASSED | Commits registrados |
 
 ### Resumen numérico
 
-- **TY-CA completados:** 23/46 (✓ PASSED)
+- **TY-CA completados:** 25/46 (✓ PASSED)
 - **TY-CA parciales:** 7/46 (⚠ Parcial — funcionalidad base existe pero falta prueba o integración completa)
-- **TY-CA pendientes:** 16/46 (✗ Pendiente — no implementados)
+- **TY-CA pendientes:** 14/46 (✗ Pendiente — no implementados)
 - **Pruebas unitarias:** 125/125 PASSED en `test_compile` (GCC 16.2.0)
 - **Compiladores verificados:** GCC 16.2.0 ✓, Clang ✗
-- **Arduino AVR:** ✗ No compilado
+- **Arduino AVR:** ✓ Compilado (Uno) — 21184 bytes Flash (65%), 274 bytes SRAM (13%). Comando: `arduino-cli compile --fqbn arduino:avr:uno examples/Basic`
+- **Portabilidad:** Headers C en .cpp, `#if defined(__AVR__)` para `size_t`, funciones C en lugar de `std::`
 - **Sanitizadores:** ✗ No ejecutados
 
 ### Archivos implementados

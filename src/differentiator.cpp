@@ -1,7 +1,7 @@
 #include "monocalc/differentiator.h"
 #include "monocalc/ast.h"
 #include "monocalc/error.h"
-#include <cmath>
+#include <math.h>
 
 namespace monocalc {
 
@@ -336,7 +336,7 @@ static ErrorCode diff(const Arena& in, NodeId id, Arena& out, NodeId* outRoot) {
                     // Check for affine: ax+b inside abs
                     MONOCALC_REAL aCoeff, bConst;
                     if (isAffineDiff(in, argNode.left, &aCoeff, &bConst)) {
-                        if (std::abs(aCoeff) > 1e-15) {
+                        if (fabs(aCoeff) > 1e-15) {
                             // d/dx(ln(abs(ax+b))) = a/(ax+b)
                             NodeId aNode = mkConst(out, aCoeff);
                             if (aNode == INVALID_ID) return ErrorCode::ResourceExhausted;
@@ -344,7 +344,7 @@ static ErrorCode diff(const Arena& in, NodeId id, Arena& out, NodeId* outRoot) {
                             if (v == INVALID_ID) return ErrorCode::ResourceExhausted;
                             NodeId ax = mkBinOp(out, OpType::Mul, aNode, v);
                             if (ax == INVALID_ID) return ErrorCode::ResourceExhausted;
-                            if (std::abs(bConst) > 1e-15) {
+                            if (fabs(bConst) > 1e-15) {
                                 NodeId bNode = mkConst(out, bConst);
                                 if (bNode == INVALID_ID) return ErrorCode::ResourceExhausted;
                                 NodeId axb = mkBinOp(out, OpType::Add, ax, bNode);

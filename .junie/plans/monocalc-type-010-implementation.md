@@ -356,10 +356,13 @@ Implementar estimación de límites, categorías de error y control de memoria.
 - `test_memory.cpp`: TY-CA-033, TY-CA-037 (exceso de memoria, preservación de función original).
 - Compilar y ejecutar pruebas; corregir errores.
 
-### ! Step 7: Stage 7: Ejemplo Arduino, validación final y reporte
+### ✓ Step 7: Stage 7: Ejemplo Arduino, validación final y reporte
 Preparar el sketch Arduino, validar compilación para AVR y generar informe final.
-- `examples/Basic/Basic.ino`: ✓ sketch creado (120 líneas)
-- `library.properties`: ✓ metadata creada
-- Compilación AVR: ✗ Falló — toolchain AVR GCC incompleto (falta `cstddef`)
-- Clang: ✗ No verificado
-- Informes JUnit/Markdown: ✗ No generados
+- `examples/Basic/Basic.ino`: ✓ sketch actualizado (90 líneas, compatible AVR)
+- Headers y fuentes en `examples/Basic/`: ✓ copiados para compilación directa (Arduino CLI no soporta `--library` con estructura include/src)
+- `library.properties`: ✓ metadata actualizada (`includes=type.h`)
+- Compilación AVR: ✓ Exitosa — 21184 bytes Flash (65%), 274 bytes SRAM (13%)
+- Comando verificado: `arduino-cli compile --fqbn arduino:avr:uno examples/Basic`
+- Headers portables: `#if defined(__AVR__)` para `size_t`, headers C en .cpp
+- Clang: ⚠ No verificado (pendiente)
+- Informes JUnit/Markdown: ⚠ No generados (pendiente)

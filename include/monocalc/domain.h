@@ -2,7 +2,6 @@
 #define MONOCALC_DOMAIN_H
 
 #include "error.h"
-#include <cstddef>
 
 #ifndef MONOCALC_REAL
 #define MONOCALC_REAL double

@@ -1,7 +1,14 @@
 #ifndef MONOCALC_AST_H
 #define MONOCALC_AST_H
 
+#if defined(__AVR__)
+#ifndef _SIZE_T
+#define _SIZE_T
+typedef unsigned int size_t;
+#endif
+#else
 #include <cstddef>
+#endif
 
 #ifndef MONOCALC_REAL
 #define MONOCALC_REAL double

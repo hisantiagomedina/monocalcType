@@ -1,8 +1,8 @@
 #include "monocalc/evaluator.h"
 #include "monocalc/ast.h"
 #include "monocalc/error.h"
-#include <cmath>
-#include <cfloat>
+#include <math.h>
+#include <float.h>
 
 namespace monocalc {
 
@@ -43,8 +43,8 @@ static EvalResult evalNode(const Arena& arena, NodeId id, MONOCALC_REAL x) {
                         return {true, result, ErrorCode::OK};
                     }
                     {
-                        MONOCALC_REAL result = std::pow(l.value, rr.value);
-                        if (std::isnan(result) || std::isinf(result)) {
+                        MONOCALC_REAL result = pow(l.value, rr.value);
+                        if (isnan(result) || isinf(result)) {
                             return {false, 0.0, ErrorCode::DomainError};
                         }
                         return {true, result, ErrorCode::OK};
@@ -57,20 +57,20 @@ static EvalResult evalNode(const Arena& arena, NodeId id, MONOCALC_REAL x) {
             if (!r.ok) return r;
             switch (n.func) {
                 case FuncType::Sin:
-                    return {true, std::sin(r.value), ErrorCode::OK};
+                    return {true, sin(r.value), ErrorCode::OK};
                 case FuncType::Cos:
-                    return {true, std::cos(r.value), ErrorCode::OK};
+                    return {true, cos(r.value), ErrorCode::OK};
                 case FuncType::Exp:
                     {
-                        MONOCALC_REAL v = std::exp(r.value);
-                        if (std::isinf(v)) return {false, 0.0, ErrorCode::DomainError};
+                        MONOCALC_REAL v = exp(r.value);
+                        if (isinf(v)) return {false, 0.0, ErrorCode::DomainError};
                         return {true, v, ErrorCode::OK};
                     }
                 case FuncType::Ln:
                     if (r.value <= 0.0) return {false, 0.0, ErrorCode::DomainError};
-                    return {true, std::log(r.value), ErrorCode::OK};
+                    return {true, log(r.value), ErrorCode::OK};
                 case FuncType::Abs:
-                    return {true, std::abs(r.value), ErrorCode::OK};
+                    return {true, fabs(r.value), ErrorCode::OK};
                 default: return {false, 0.0, ErrorCode::UnsupportedOperation};
             }
         }

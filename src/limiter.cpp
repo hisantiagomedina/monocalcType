@@ -1,9 +1,8 @@
 #include "monocalc/limiter.h"
 #include "monocalc/evaluator.h"
 #include "monocalc/error.h"
-#include <cmath>
-#include <cstdlib>
-#include <limits>
+#include <math.h>
+#include <stdlib.h>
 
 namespace monocalc {
 
@@ -30,19 +29,18 @@ static LimitResult limitOneSide(const Arena& arena, NodeId root, MONOCALC_REAL x
         }
 
         // Check for divergence: value grows without bound
-        if (std::abs(r.value) > divergeThreshold) {
+        if (fabs(r.value) > divergeThreshold) {
             LimitResult lr;
             lr.ok = false;
-            lr.value = r.value > 0 ? std::numeric_limits<MONOCALC_REAL>::infinity()
-                                   : -std::numeric_limits<MONOCALC_REAL>::infinity();
+            lr.value = r.value > 0 ? (MONOCALC_REAL)INFINITY : -(MONOCALC_REAL)INFINITY;
             lr.err = ErrorCode::Diverged;
             return lr;
         }
 
         if (!first) {
             // Check convergence: successive values are close
-            MONOCALC_REAL diff = std::abs(r.value - prevVal);
-            if (diff < tol * std::abs(prevVal) || diff < tol) {
+            MONOCALC_REAL diff = fabs(r.value - prevVal);
+            if (diff < tol * fabs(prevVal) || diff < tol) {
                 // Converged
                 LimitResult lr;
                 lr.ok = true;
@@ -98,8 +96,8 @@ LimitResult limit(const Arena& arena, NodeId root, MONOCALC_REAL x0, LimitDirect
             }
 
             // Both converged — check they agree
-            MONOCALC_REAL diff = std::abs(left.value - right.value);
-            if (diff < 1e-8 * std::abs(left.value) || diff < 1e-8) {
+            MONOCALC_REAL diff = fabs(left.value - right.value);
+            if (diff < 1e-8 * fabs(left.value) || diff < 1e-8) {
                 LimitResult lr;
                 lr.ok = true;
                 lr.value = (left.value + right.value) / 2.0;

@@ -2,7 +2,7 @@
 #include "monocalc/ast.h"
 #include "monocalc/error.h"
 #include "monocalc/domain.h"
-#include <cmath>
+#include <math.h>
 
 namespace monocalc {
 
@@ -357,10 +357,10 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                     // Check for 1 / (a*x + b) → ln|a*x+b| / a
                     {
                         MONOCALC_REAL numVal;
-                        if (isConst(in, n.left, &numVal) && std::abs(numVal - 1.0) < 1e-15) {
+                        if (isConst(in, n.left, &numVal) && fabs(numVal - 1.0) < 1e-15) {
                             MONOCALC_REAL aCoeff, bConst;
                             if (isAffine(in, n.right, &aCoeff, &bConst)) {
-                                if (std::abs(aCoeff) < 1e-15) {
+                                if (fabs(aCoeff) < 1e-15) {
                                     // 1 / constant → constant
                                     MONOCALC_REAL c = 1.0 / bConst;
                                     NodeId cNode = mkConst(out, c);
@@ -408,7 +408,7 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                     // General: f / g — check if f is 1 and g is x (1/x → ln|a|x|)
                     {
                         MONOCALC_REAL numVal;
-                        if (isConst(in, n.left, &numVal) && std::abs(numVal - 1.0) < 1e-15 && isVar(in, n.right)) {
+                        if (isConst(in, n.left, &numVal) && fabs(numVal - 1.0) < 1e-15 && isVar(in, n.right)) {
                             // ∫1/x dx = ln|a|x|
                             NodeId v = mkVar(out);
                             if (v == INVALID_ID) return ErrorCode::ResourceExhausted;
@@ -498,9 +498,9 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                 case FuncType::Sin: {
                     if (affine) {
                         // ∫sin(a*x+b) dx = -cos(a*x+b) / a
-                        if (std::abs(aCoeff) < 1e-15) {
+                        if (fabs(aCoeff) < 1e-15) {
                             // sin(constant) → constant * x
-                            MONOCALC_REAL c = std::sin(bConst);
+                            MONOCALC_REAL c = sin(bConst);
                             NodeId cNode = mkConst(out, c);
                             if (cNode == INVALID_ID) return ErrorCode::ResourceExhausted;
                             NodeId v = mkVar(out);
@@ -543,8 +543,8 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                 case FuncType::Cos: {
                     if (affine) {
                         // ∫cos(a*x+b) dx = sin(a*x+b) / a
-                        if (std::abs(aCoeff) < 1e-15) {
-                            MONOCALC_REAL c = std::cos(bConst);
+                        if (fabs(aCoeff) < 1e-15) {
+                            MONOCALC_REAL c = cos(bConst);
                             NodeId cNode = mkConst(out, c);
                             if (cNode == INVALID_ID) return ErrorCode::ResourceExhausted;
                             NodeId v = mkVar(out);
@@ -584,8 +584,8 @@ static ErrorCode integrateNode(const Arena& in, NodeId id, Arena& out, NodeId* o
                 case FuncType::Exp: {
                     if (affine) {
                         // ∫exp(a*x+b) dx = exp(a*x+b) / a
-                        if (std::abs(aCoeff) < 1e-15) {
-                            MONOCALC_REAL c = std::exp(bConst);
+                        if (fabs(aCoeff) < 1e-15) {
+                            MONOCALC_REAL c = exp(bConst);
                             NodeId cNode = mkConst(out, c);
                             if (cNode == INVALID_ID) return ErrorCode::ResourceExhausted;
                             NodeId v = mkVar(out);

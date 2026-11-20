@@ -1,8 +1,8 @@
 #include "monocalc/lexer.h"
 #include "monocalc/error.h"
-#include <cstring>
-#include <cstdlib>
-#include <cctype>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
 
 namespace monocalc {
 
@@ -75,7 +75,7 @@ ErrorCode tokenize(const char* input, size_t len, Token* out, size_t capacity, s
                     goto handle_ident;
                 }
             }
-            tok.number = std::strtod(input + start, nullptr);
+            tok.number = strtod(input + start, nullptr);
             continue;
         }
 

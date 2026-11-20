@@ -79,12 +79,14 @@
 
 ## Resultados de Pruebas
 - Compilación GCC 16.2.0: ✓ exitosa sin warnings
-- Pruebas test_compile: **125/125 PASSED** (20 parse/compute/derive + 41 integración + 13 límites + 20 errores + 11 memoria + 20 anteriores)
+- Pruebas test_compile: **125/125 PASSED**
+- Arduino AVR (Uno): ✓ compilación exitosa — 21184 bytes Flash (65%), 274 bytes SRAM (13%)
+- Comando: `arduino-cli compile --fqbn arduino:avr:uno examples/Basic`
+- Estructura: headers y fuentes en `examples/Basic/` junto con `Basic.ino` (Arduino CLI no soporta `--library` con estructura include/src)
+- Clang: pendiente
 - Bug corregido: domainCheck(NotZero) usaba x=0 hardcodeado; ahora usa excludedPoint
 - Bug corregido: d/dx(ln(abs(ax+b))) detectado antes de la regla de cadena genérica
 - Bug corregido: lim 1/x x->0 bilateral devuelve NotConverged (signos opuestos)
-- Clang: pendiente
-- Arduino AVR: pendiente
 
 ## Decisiones Técnicas
 - Arena sin constructor (C++11 no soporta aggregate assignment con constructor)
@@ -98,6 +100,7 @@
 - domainCheck(NotZero) usa excludedPoint para el punto excluido real
 - Limiter con aproximación numérica progresiva (h *= 0.1) hasta convergencia o divergencia
 - Límites bilaterales combinan izquierda y derecha; signos opuestos → NotConverged
+- **Portabilidad AVR:** `#if defined(__AVR__)` para `size_t` en headers; headers C (`<math.h>`, `<stdlib.h>`, `<string.h>`, `<ctype.h>`, `<float.h>`) en .cpp; funciones C (`fabs`, `sin`, `cos`, `exp`, `log`, `pow`, `isnan`, `isinf`, `strtod`, `malloc`, `free`) en lugar de `std::` equivalents
 
 ## Próximo Milestone
-**Stage 7: Arduino AVR** — Basic.ino y library.properties creados. Compilación falló: toolchain AVR GCC incompleto (falta `cstddef`). Pendiente instalación de cabeceras C++ AVR.
+**Stage 7 completado.** Arduino AVR compilado con éxito. Pendiente: verificación con Clang y generación de informes JUnit XML / Markdown.

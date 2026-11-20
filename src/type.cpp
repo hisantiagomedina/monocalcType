@@ -7,8 +7,8 @@
 #include "monocalc/limiter.h"
 #include "monocalc/domain.h"
 #include "monocalc/error.h"
-#include <cstring>
-#include <cstdlib>
+#include <string.h>
+#include <stdlib.h>
 
 namespace monocalc {
 
@@ -30,7 +30,7 @@ ParseResult parse(const char* input, size_t len, Function& out) {
     out.input[copyLen] = '\0';
     out.inputLen = copyLen;
 
-    Node* nodes = static_cast<Node*>(std::malloc(sizeof(Node) * DEFAULT_ARENA_CAPACITY));
+    Node* nodes = (Node*)malloc(sizeof(Node) * DEFAULT_ARENA_CAPACITY);
     if (!nodes) {
         ParseResult r;
         r.ok = false; r.func = out; r.err = ErrorCode::ResourceExhausted; r.pos = 0;
@@ -42,7 +42,7 @@ ParseResult parse(const char* input, size_t len, Function& out) {
     size_t tokenCount = 0;
     ErrorCode err = tokenize(input, len, tokens, DEFAULT_TOKEN_CAPACITY, &tokenCount);
     if (err != ErrorCode::OK) {
-        std::free(nodes);
+        free(nodes);
         out.arena.init(nullptr, 0, 0);
         ParseResult r;
         r.ok = false; r.func = out; r.err = err; r.pos = 0;
@@ -52,21 +52,21 @@ ParseResult parse(const char* input, size_t len, Function& out) {
     // Check for implicit multiplication
     for (size_t i = 0; i + 1 < tokenCount; i++) {
         if (tokens[i].type == TokenType::Number && tokens[i+1].type == TokenType::Ident) {
-            std::free(nodes);
+            free(nodes);
             out.arena.init(nullptr, 0, 0);
             ParseResult r;
             r.ok = false; r.func = out; r.err = ErrorCode::SyntaxError; r.pos = tokens[i+1].pos;
             return r;
         }
         if (tokens[i].type == TokenType::RParen && tokens[i+1].type == TokenType::LParen) {
-            std::free(nodes);
+            free(nodes);
             out.arena.init(nullptr, 0, 0);
             ParseResult r;
             r.ok = false; r.func = out; r.err = ErrorCode::SyntaxError; r.pos = tokens[i+1].pos;
             return r;
         }
         if (tokens[i].type == TokenType::RParen && tokens[i+1].type == TokenType::Ident) {
-            std::free(nodes);
+            free(nodes);
             out.arena.init(nullptr, 0, 0);
             ParseResult r;
             r.ok = false; r.func = out; r.err = ErrorCode::SyntaxError; r.pos = tokens[i+1].pos;
@@ -77,7 +77,7 @@ ParseResult parse(const char* input, size_t len, Function& out) {
     NodeId root;
     err = parse(tokens, tokenCount, out.arena, &root);
     if (err != ErrorCode::OK) {
-        std::free(nodes);
+        free(nodes);
         out.arena.init(nullptr, 0, 0);
         ParseResult r;
         r.ok = false; r.func = out; r.err = err; r.pos = 0;
@@ -112,14 +112,14 @@ ErrorCode derive(const Function& f, Function& out) {
 
     if (f.root == INVALID_ID) return ErrorCode::SyntaxError;
 
-    Node* nodes = static_cast<Node*>(std::malloc(sizeof(Node) * DEFAULT_ARENA_CAPACITY));
+    Node* nodes = (Node*)malloc(sizeof(Node) * DEFAULT_ARENA_CAPACITY);
     if (!nodes) return ErrorCode::ResourceExhausted;
     out.arena.init(nodes, 0, DEFAULT_ARENA_CAPACITY);
 
     NodeId root;
     ErrorCode err = differentiate(f.arena, f.root, out.arena, &root);
     if (err != ErrorCode::OK) {
-        std::free(nodes);
+        free(nodes);
         out.arena.init(nullptr, 0, 0);
         return err;
     }
@@ -136,7 +136,7 @@ ErrorCode integrate(const Function& f, Function& out) {
 
     if (f.root == INVALID_ID) return ErrorCode::SyntaxError;
 
-    Node* nodes = static_cast<Node*>(std::malloc(sizeof(Node) * DEFAULT_ARENA_CAPACITY));
+    Node* nodes = (Node*)malloc(sizeof(Node) * DEFAULT_ARENA_CAPACITY);
     if (!nodes) return ErrorCode::ResourceExhausted;
     out.arena.init(nodes, 0, DEFAULT_ARENA_CAPACITY);
 
@@ -144,7 +144,7 @@ ErrorCode integrate(const Function& f, Function& out) {
     Domain d;
     ErrorCode err = integrateAst(f.arena, f.root, out.arena, &root, &d);
     if (err != ErrorCode::OK) {
-        std::free(nodes);
+        free(nodes);
         out.arena.init(nullptr, 0, 0);
         return err;
     }

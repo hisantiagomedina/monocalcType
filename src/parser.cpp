@@ -2,7 +2,7 @@
 #include "monocalc/token.h"
 #include "monocalc/ast.h"
 #include "monocalc/error.h"
-#include <cstring>
+#include <string.h>
 
 namespace monocalc {
 
